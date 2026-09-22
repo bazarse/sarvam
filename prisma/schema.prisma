@@ -1,0 +1,95 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Shop {
+  id          String   @id @default(cuid())
+  shopName    String   @default("Sarvam Management")
+  ownerName   String   @default("Admin")
+  phone       String   @default("9876543210")
+  email       String?  @default("admin@sarvam.com")
+  upiId       String   @default("sarvam@upi")
+  address     String?
+  devices     Device[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Device {
+  id                String              @id @default(cuid())
+  imei1             String              @unique
+  imei2             String?
+  serialNumber      String?
+  customerName      String
+  customerPhone     String
+  customerAadhaar   String?
+  deviceModel       String
+  brand             String              @default("Android")
+  fcmToken          String?
+  
+  // Security & Lock State
+  isLocked          Boolean             @default(false)
+  lockMessage       String?
+  isSirenActive     Boolean             @default(false)
+  
+  // Telemetry & Hardware State
+  batteryLevel      Int?                @default(85)
+  isOnline          Boolean             @default(true)
+  lastPingAt        DateTime            @default(now())
+  lastKnownLat      Float?
+  lastKnownLng      Float?
+  
+  // SIM Security
+  simIccid          String?
+  simOperator       String?
+  
+  // Deadman & EMI Rules
+  offlineTimerHours Int                 @default(48)
+  totalLoanAmount   Float               @default(15000)
+  emiAmount         Float               @default(1500)
+  totalEmis         Int                 @default(10)
+  paidEmis          Int                 @default(0)
+  gracePeriodDays   Int                 @default(0)
+  
+  // Relationships
+  shopId            String?
+  shop              Shop?               @relation(fields: [shopId], references: [id])
+  emiSchedules      EmiSchedule[]
+  activityLogs      DeviceActivityLog[]
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model EmiSchedule {
+  id            String    @id @default(cuid())
+  deviceId      String
+  device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  installmentNo Int
+  dueDate       DateTime
+  amount        Float
+  status        String    @default("PENDING") // PENDING, PAID, OVERDUE
+  paymentMode   String?   // CASH, UPI
+  paidAt        DateTime?
+  receiptNumber String?
+  remarks       String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model DeviceActivityLog {
+  id           String   @id @default(cuid())
+  deviceId     String
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  activityType String   // LOCK, UNLOCK, SIREN, STOP_SIREN, WARNING, SIM_REMOVED, SIM_SWAPPED, CASH_PAID, LOCATION_UPDATE
+  details      String?
+  ipAddress    String?
+  timestamp    DateTime @default(now())
+}
