@@ -6,7 +6,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1.0,
   maximumScale: 5.0,
-  themeColor: '#0B132B',
+  themeColor: '#FFFFFF',
 }
 
 export const metadata: Metadata = {
@@ -23,11 +23,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark h-full">
+    <html lang="en" className="h-full">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
-      <body className="min-h-full flex flex-col bg-[#0B132B] text-slate-100 antialiased pb-16 md:pb-0">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 antialiased pb-16 md:pb-0">
         <Navbar />
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {children}

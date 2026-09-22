@@ -11,7 +11,8 @@ import {
   ArrowRight,
   TrendingUp,
   AlertTriangle,
-  Banknote
+  Banknote,
+  Database
 } from 'lucide-react'
 
 // Server component with revalidation
@@ -21,11 +22,6 @@ export default async function DashboardPage() {
   const totalDevices = await prisma.device.count()
   const lockedDevices = await prisma.device.count({ where: { isLocked: true } })
   const activeDevices = await prisma.device.count({ where: { isLocked: false } })
-
-  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
-  const offlineDevices = await prisma.device.count({
-    where: { lastPingAt: { lt: twoHoursAgo } },
-  })
 
   const paidEmis = await prisma.emiSchedule.aggregate({
     _sum: { amount: true },
@@ -65,51 +61,58 @@ export default async function DashboardPage() {
       value: totalDevices,
       sub: 'All Android devices',
       icon: Smartphone,
-      color: 'text-blue-400',
-      bg: 'bg-blue-500/10 border-blue-500/20',
+      color: 'text-blue-600',
+      bg: 'bg-blue-50/60 border-blue-200/60',
+      iconBg: 'bg-blue-100 text-blue-700',
     },
     {
       title: 'Active & Paid',
       value: activeDevices,
       sub: 'Phones running normally',
       icon: CheckCircle2,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10 border-emerald-500/20',
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50/60 border-emerald-200/60',
+      iconBg: 'bg-emerald-100 text-emerald-700',
     },
     {
       title: 'Locked Devices',
       value: lockedDevices,
       sub: 'Overdue or manual lock',
       icon: ShieldAlert,
-      color: 'text-rose-400',
-      bg: 'bg-rose-500/10 border-rose-500/20',
+      color: 'text-rose-600',
+      bg: 'bg-rose-50/60 border-rose-200/60',
+      iconBg: 'bg-rose-100 text-rose-700',
     },
     {
       title: 'Total Collected',
       value: `₹${(paidEmis._sum.amount ?? 0).toLocaleString('en-IN')}`,
       sub: 'Cash & UPI payments',
       icon: IndianRupee,
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10 border-amber-500/20',
+      color: 'text-amber-600',
+      bg: 'bg-amber-50/60 border-amber-200/60',
+      iconBg: 'bg-amber-100 text-amber-700',
     },
   ]
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-[#1C2541] via-[#162039] to-[#1C2541] border border-slate-800 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-cyan-400 border border-blue-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
               Retailer Command Center
             </span>
-            <span className="text-xs text-slate-400">Manual EMI & Anti-Theft</span>
+            <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+              <Database className="w-3 h-3 text-emerald-600" />
+              <span>Live Supabase Cloud</span>
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1.5 tracking-tight">
             Sarvam Management
           </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            1-Click Lock, Unlock, Cash Receipt, aur Anti-Theft Siren System
+          <p className="text-sm text-slate-600 mt-0.5">
+            Dukan par cash aane par 1-click me unlock karein aur phones ko remotely control karein
           </p>
         </div>
 
@@ -117,7 +120,7 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/devices"
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-all shadow-md shadow-blue-600/30 min-h-[44px]"
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm min-h-[44px]"
           >
             <Smartphone className="w-4 h-4" />
             <span>Manage Devices</span>
@@ -125,9 +128,9 @@ export default async function DashboardPage() {
 
           <Link
             href="/enroll"
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#0B132B] hover:bg-slate-900 border border-slate-700 text-cyan-300 font-medium text-sm transition-all min-h-[44px]"
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm transition-all border border-slate-200 min-h-[44px]"
           >
-            <QrCode className="w-4 h-4 text-cyan-400" />
+            <QrCode className="w-4 h-4 text-slate-700" />
             <span>Setup QR</span>
           </Link>
         </div>
@@ -140,18 +143,18 @@ export default async function DashboardPage() {
           return (
             <div
               key={idx}
-              className={`p-5 rounded-2xl bg-[#1C2541] border ${stat.bg} shadow-lg relative overflow-hidden`}
+              className={`p-5 rounded-2xl bg-white border ${stat.bg} shadow-xs relative overflow-hidden`}
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-400">{stat.title}</p>
-                <div className={`p-2 rounded-xl bg-slate-900/60 ${stat.color}`}>
+                <p className="text-sm font-semibold text-slate-500">{stat.title}</p>
+                <div className={`p-2.5 rounded-xl ${stat.iconBg}`}>
                   <Icon className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white mt-2 tracking-tight">
+              <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
                 {stat.value}
               </p>
-              <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1 font-medium">
                 <span>{stat.sub}</span>
               </p>
             </div>
@@ -165,12 +168,12 @@ export default async function DashboardPage() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white">Recent Customer Devices</h2>
-              <p className="text-xs text-slate-400">Quick view of customer phone status & upcoming dues</p>
+              <h2 className="text-lg font-bold text-slate-900">Customer Devices (Live DB)</h2>
+              <p className="text-xs text-slate-500">Real-time status synced with Supabase PostgreSQL</p>
             </div>
             <Link
               href="/devices"
-              className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 min-h-[44px]"
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 min-h-[44px]"
             >
               <span>View All Devices</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -178,52 +181,52 @@ export default async function DashboardPage() {
           </div>
 
           {/* Table Card */}
-          <div className="bg-[#1C2541] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="table-responsive">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="bg-slate-900/80 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3.5">Customer & Phone</th>
                     <th className="px-4 py-3.5">Device Model</th>
                     <th className="px-4 py-3.5">Next Due</th>
                     <th className="px-4 py-3.5">Lock Status</th>
-                    <th className="px-4 py-3.5 text-right">Quick Action</th>
+                    <th className="px-4 py-3.5 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {devicesList.map((d) => {
                     const nextEmi = d.emiSchedules[0]
                     return (
-                      <tr key={d.id} className="hover:bg-slate-800/40 transition-colors">
+                      <tr key={d.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="px-4 py-3.5">
-                          <Link href={`/devices/${d.id}`} className="font-semibold text-white hover:text-cyan-300 block">
+                          <Link href={`/devices/${d.id}`} className="font-bold text-slate-900 hover:text-blue-600 block">
                             {d.customerName}
                           </Link>
-                          <span className="text-xs text-slate-400 font-mono">{d.customerPhone}</span>
+                          <span className="text-xs text-slate-500 font-mono">{d.customerPhone}</span>
                         </td>
                         <td className="px-4 py-3.5">
-                          <span className="text-slate-200 font-medium block">{d.deviceModel}</span>
+                          <span className="text-slate-800 font-medium block">{d.deviceModel}</span>
                           <span className="text-[11px] text-slate-400 font-mono">IMEI: ...{d.imei1.slice(-6)}</span>
                         </td>
                         <td className="px-4 py-3.5">
                           {nextEmi ? (
                             <div>
-                              <span className="text-amber-400 font-bold">₹{nextEmi.amount}</span>
-                              <span className="text-[11px] text-slate-400 block">
+                              <span className="text-amber-700 font-bold">₹{nextEmi.amount}</span>
+                              <span className="text-[11px] text-slate-500 block">
                                 Inst. #{nextEmi.installmentNo}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-xs text-emerald-400 font-medium">All Paid 🎉</span>
+                            <span className="text-xs text-emerald-700 font-semibold">All Paid 🎉</span>
                           )}
                         </td>
                         <td className="px-4 py-3.5">
                           {d.isLocked ? (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                               🔒 Locked
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               🟢 Active
                             </span>
                           )}
@@ -231,7 +234,7 @@ export default async function DashboardPage() {
                         <td className="px-4 py-3.5 text-right">
                           <Link
                             href={`/devices/${d.id}`}
-                            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600/20 text-cyan-300 hover:bg-blue-600/40 text-xs font-medium border border-blue-500/30 transition-all min-h-[38px]"
+                            className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold border border-blue-200 transition-all min-h-[38px]"
                           >
                             Open Ledger
                           </Link>
@@ -248,11 +251,11 @@ export default async function DashboardPage() {
         {/* Right Col: Live Security & Activity Logs */}
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Live Activity & Alerts</h2>
-            <p className="text-xs text-slate-400">Real-time SIM changes, payments, & locks</p>
+            <h2 className="text-lg font-bold text-slate-900">Live Activity & Alerts</h2>
+            <p className="text-xs text-slate-500">Real-time SIM events, cash receipts, and locks</p>
           </div>
 
-          <div className="bg-[#1C2541] rounded-2xl border border-slate-800 shadow-xl p-4 divide-y divide-slate-800">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 divide-y divide-slate-100">
             {recentAlerts.map((log) => {
               const isSimAlert = log.activityType.includes('SIM')
               const isCash = log.activityType === 'CASH_PAID'
@@ -263,10 +266,10 @@ export default async function DashboardPage() {
                   <div
                     className={`p-2 rounded-xl mt-0.5 shrink-0 ${
                       isSimAlert
-                        ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
                         : isCash
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-blue-500/10 text-cyan-400 border border-blue-500/20'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-blue-50 text-blue-700 border border-blue-200'
                     }`}
                   >
                     {isSimAlert ? (
@@ -279,17 +282,17 @@ export default async function DashboardPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-white truncate">
+                      <p className="text-xs font-bold text-slate-900 truncate">
                         {log.device?.customerName ?? 'Device Alert'}
                       </p>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-400 font-medium">
                         {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                    <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
                       {log.details ?? log.activityType}
                     </p>
-                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
                       {log.device?.deviceModel} (IMEI: ...{log.device?.imei1.slice(-4)})
                     </p>
                   </div>

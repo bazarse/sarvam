@@ -21,7 +21,8 @@ import {
   CreditCard,
   Trash2,
   Loader2,
-  FileText
+  FileText,
+  Database
 } from 'lucide-react'
 
 export default function DeviceDetailPage() {
@@ -130,7 +131,7 @@ export default function DeviceDetailPage() {
       const res = await fetch(`/api/dashboard/devices/${id}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.success) {
-        alert('Device deleted.')
+        alert('Device deleted from Supabase.')
         router.push('/devices')
       }
     } catch (e) {
@@ -140,9 +141,9 @@ export default function DeviceDetailPage() {
 
   if (loading || !device) {
     return (
-      <div className="py-24 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
-        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-        <p className="text-sm">Loading device profile and EMI ledger from Supabase...</p>
+      <div className="py-24 text-center text-slate-500 flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <p className="text-sm font-medium">Loading device profile and live EMI ledger from Supabase...</p>
       </div>
     )
   }
@@ -152,13 +153,13 @@ export default function DeviceDetailPage() {
       {/* Toast Alert */}
       {toast && (
         <div
-          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 text-sm font-medium border ${
+          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 text-sm font-semibold border ${
             toast.type === 'success'
-              ? 'bg-emerald-950 text-emerald-200 border-emerald-700'
-              : 'bg-rose-950 text-rose-200 border-rose-700'
+              ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+              : 'bg-rose-50 text-rose-900 border-rose-300'
           }`}
         >
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
           <span>{toast.text}</span>
         </div>
       )}
@@ -167,7 +168,7 @@ export default function DeviceDetailPage() {
       <div className="flex items-center justify-between">
         <Link
           href="/devices"
-          className="inline-flex items-center space-x-2 text-sm text-slate-400 hover:text-white transition-colors min-h-[44px]"
+          className="inline-flex items-center space-x-2 text-sm text-slate-600 hover:text-slate-900 font-medium transition-colors min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Devices List</span>
@@ -175,7 +176,7 @@ export default function DeviceDetailPage() {
 
         <button
           onClick={handleDelete}
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold min-h-[40px]"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold min-h-[40px] cursor-pointer"
         >
           <Trash2 className="w-3.5 h-3.5" />
           <span>Remove Device</span>
@@ -183,19 +184,19 @@ export default function DeviceDetailPage() {
       </div>
 
       {/* Top Device Banner & Quick Remote Controls */}
-      <div className="p-6 rounded-2xl bg-[#1C2541] border border-slate-800 shadow-xl space-y-6">
+      <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 text-cyan-400 font-semibold border border-blue-500/30">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200">
                 {device.brand}
               </span>
-              <span className="text-xs text-slate-400">Offline Timer: {device.offlineTimerHours}h</span>
+              <span className="text-xs text-slate-500 font-medium">Offline Timer: {device.offlineTimerHours}h</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
               {device.customerName}
             </h1>
-            <p className="text-sm text-slate-300 font-mono mt-0.5">
+            <p className="text-sm text-slate-500 font-mono mt-0.5">
               {device.deviceModel} • IMEI: {device.imei1}
             </p>
           </div>
@@ -206,7 +207,7 @@ export default function DeviceDetailPage() {
             <button
               disabled={actionLoading}
               onClick={handleCashPaid}
-              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 min-h-[44px] transition-all cursor-pointer"
+              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm min-h-[44px] transition-all cursor-pointer"
             >
               <Banknote className="w-4 h-4" />
               <span>💵 Collect Cash & Unlock</span>
@@ -217,7 +218,7 @@ export default function DeviceDetailPage() {
               <button
                 disabled={actionLoading}
                 onClick={handleUnlock}
-                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-md min-h-[44px] transition-all"
+                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-bold text-sm min-h-[44px] transition-all cursor-pointer"
               >
                 <Unlock className="w-4 h-4" />
                 <span>Remote Unlock</span>
@@ -226,7 +227,7 @@ export default function DeviceDetailPage() {
               <button
                 disabled={actionLoading}
                 onClick={handleLock}
-                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm shadow-md min-h-[44px] transition-all"
+                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 font-bold text-sm min-h-[44px] transition-all cursor-pointer"
               >
                 <Lock className="w-4 h-4" />
                 <span>Remote Lock</span>
@@ -237,10 +238,10 @@ export default function DeviceDetailPage() {
             <button
               disabled={actionLoading}
               onClick={() => handleSiren(!device.isSirenActive)}
-              className={`inline-flex items-center space-x-2 px-3 py-2.5 rounded-xl border text-sm font-semibold min-h-[44px] transition-all ${
+              className={`inline-flex items-center space-x-2 px-3.5 py-2.5 rounded-xl border text-sm font-bold min-h-[44px] transition-all cursor-pointer ${
                 device.isSirenActive
-                  ? 'bg-amber-500 text-black border-amber-400 font-bold'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
+                  ? 'bg-amber-500 text-slate-900 border-amber-600 font-bold'
+                  : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
               }`}
             >
               {device.isSirenActive ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -250,28 +251,28 @@ export default function DeviceDetailPage() {
         </div>
 
         {/* Telemetry Chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-800 text-xs">
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-            <span className="text-slate-400 block">Current Status</span>
-            <span className={`font-bold mt-1 inline-block ${device.isLocked ? 'text-rose-400' : 'text-emerald-400'}`}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100 text-xs">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-slate-500 font-medium block">Current Status</span>
+            <span className={`font-bold mt-1 inline-block ${device.isLocked ? 'text-rose-700' : 'text-emerald-700'}`}>
               {device.isLocked ? '🔒 Locked' : '🟢 Active Normal'}
             </span>
           </div>
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-            <span className="text-slate-400 block">Battery & Network</span>
-            <span className="font-semibold text-slate-200 mt-1 inline-block">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-slate-500 font-medium block">Battery & Network</span>
+            <span className="font-semibold text-slate-800 mt-1 inline-block">
               🔋 {device.batteryLevel ?? 80}% • {device.simOperator ?? 'SIM Active'}
             </span>
           </div>
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-            <span className="text-slate-400 block">Customer Mobile</span>
-            <a href={`tel:${device.customerPhone}`} className="font-semibold text-cyan-400 mt-1 inline-block font-mono">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-slate-500 font-medium block">Customer Mobile</span>
+            <a href={`tel:${device.customerPhone}`} className="font-bold text-blue-600 mt-1 inline-block font-mono">
               📞 {device.customerPhone}
             </a>
           </div>
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-            <span className="text-slate-400 block">EMI Recovery</span>
-            <span className="font-bold text-amber-400 mt-1 inline-block">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-slate-500 font-medium block">EMI Recovery</span>
+            <span className="font-bold text-amber-700 mt-1 inline-block">
               {device.paidEmis} of {device.totalEmis} Paid (₹{device.totalLoanAmount})
             </span>
           </div>
@@ -284,15 +285,15 @@ export default function DeviceDetailPage() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white">Monthly EMI Ledger</h2>
-              <p className="text-xs text-slate-400">Complete installment payment schedule & cash receipts</p>
+              <h2 className="text-lg font-bold text-slate-900">Monthly EMI Ledger (Live DB)</h2>
+              <p className="text-xs text-slate-500">All installment statuses recorded in Supabase</p>
             </div>
           </div>
 
-          <div className="bg-[#1C2541] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="table-responsive">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="bg-slate-900/80 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3.5">Inst. #</th>
                     <th className="px-4 py-3.5">Due Date</th>
@@ -301,46 +302,46 @@ export default function DeviceDetailPage() {
                     <th className="px-4 py-3.5">Receipt / Mode</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {device.emiSchedules?.map((emi: any) => {
                     const isPaid = emi.status === 'PAID'
                     const isOverdue = emi.status === 'OVERDUE'
 
                     return (
-                      <tr key={emi.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="px-4 py-3.5 font-bold text-white">
+                      <tr key={emi.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-4 py-3.5 font-bold text-slate-900">
                           #{emi.installmentNo}
                         </td>
-                        <td className="px-4 py-3.5 text-xs text-slate-300">
+                        <td className="px-4 py-3.5 text-xs text-slate-700">
                           {new Date(emi.dueDate).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric',
                           })}
                         </td>
-                        <td className="px-4 py-3.5 font-bold text-white">
+                        <td className="px-4 py-3.5 font-bold text-slate-900">
                           ₹{emi.amount}
                         </td>
                         <td className="px-4 py-3.5">
                           {isPaid ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               ✓ Paid
                             </span>
                           ) : isOverdue ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                               Overdue
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                               Pending
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5 text-xs text-slate-400 font-mono">
+                        <td className="px-4 py-3.5 text-xs text-slate-500 font-mono">
                           {isPaid ? (
                             <div>
-                              <span className="text-emerald-400 font-bold block">{emi.paymentMode ?? 'CASH'}</span>
-                              <span className="text-[10px] text-slate-500">{emi.receiptNumber ?? 'Receipt OK'}</span>
+                              <span className="text-emerald-700 font-bold block">{emi.paymentMode ?? 'CASH'}</span>
+                              <span className="text-[10px] text-slate-400">{emi.receiptNumber ?? 'Receipt OK'}</span>
                             </div>
                           ) : (
                             <span>—</span>
@@ -358,18 +359,18 @@ export default function DeviceDetailPage() {
         {/* Right Col: Device Security & Activity Audit Log */}
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Security & Audit History</h2>
-            <p className="text-xs text-slate-400">Chronological activity log of this device</p>
+            <h2 className="text-lg font-bold text-slate-900">Security & Audit History</h2>
+            <p className="text-xs text-slate-500">Real-time action logs from Supabase</p>
           </div>
 
-          <div className="bg-[#1C2541] rounded-2xl border border-slate-800 shadow-xl p-4 divide-y divide-slate-800 max-h-[480px] overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
             {device.activityLogs?.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center py-6">No activity records yet.</p>
+              <p className="text-xs text-slate-400 text-center py-6 font-medium">No activity records yet.</p>
             ) : (
               device.activityLogs?.map((log: any) => (
                 <div key={log.id} className="py-3 first:pt-0 last:pb-0 space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-cyan-400">{log.activityType}</span>
+                    <span className="font-bold text-blue-700">{log.activityType}</span>
                     <span className="text-[10px] text-slate-400">
                       {new Date(log.timestamp).toLocaleString([], {
                         month: 'short',
@@ -379,7 +380,7 @@ export default function DeviceDetailPage() {
                       })}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">{log.details}</p>
+                  <p className="text-xs text-slate-600 leading-relaxed">{log.details}</p>
                 </div>
               ))
             )}
