@@ -15,8 +15,8 @@ import {
   Database
 } from 'lucide-react'
 
-// Server component with revalidation
-export const revalidate = 10
+// Force dynamic execution at runtime to avoid build-time database connection failures
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const totalDevices = await prisma.device.count()

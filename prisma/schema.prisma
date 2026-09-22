@@ -1,7 +1,6 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -52,7 +51,7 @@ model Device {
   // Deadman & EMI Rules
   offlineTimerHours Int                 @default(48)
   totalLoanAmount   Float               @default(15000)
-  emiAmount         Float               @default(1500)
+  emiAmount         Float               @default(2500)
   totalEmis         Int                 @default(10)
   paidEmis          Int                 @default(0)
   gracePeriodDays   Int                 @default(0)

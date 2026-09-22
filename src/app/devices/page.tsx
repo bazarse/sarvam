@@ -20,12 +20,15 @@ import {
   ShieldAlert,
   Loader2,
   X,
-  Database
+  Database,
+  QrCode,
+  Download
 } from 'lucide-react'
 
 interface DeviceItem {
   id: string
   imei1: string
+  imei2?: string | null
   customerName: string
   customerPhone: string
   deviceModel: string
@@ -62,13 +65,18 @@ export default function DevicesPage() {
   const [cashModalDevice, setCashModalDevice] = useState<DeviceItem | null>(null)
   const [cashRemarks, setCashRemarks] = useState('')
 
-  // New Device Modal
+  // QR Modal
+  const [showQrModal, setShowQrModal] = useState(false)
+
+  // New Device Modal with Dual IMEI support
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false)
   const [newDeviceForm, setNewDeviceForm] = useState({
     customerName: '',
     customerPhone: '',
     imei1: '',
+    imei2: '',
     deviceModel: '',
+    brand: 'Samsung',
     totalLoanAmount: '15000',
     emiAmount: '2500',
     totalEmis: '6',
@@ -204,7 +212,7 @@ export default function DevicesPage() {
     }
   }
 
-  // Action: Enroll New Device
+  // Action: Enroll New Device with Dual IMEI
   const handleEnrollDevice = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -215,13 +223,15 @@ export default function DevicesPage() {
       })
       const data = await res.json()
       if (data.success) {
-        showToast('Customer device registered in Supabase!')
+        showToast('Customer device with Dual IMEI registered in Supabase!')
         setIsEnrollModalOpen(false)
         setNewDeviceForm({
           customerName: '',
           customerPhone: '',
           imei1: '',
+          imei2: '',
           deviceModel: '',
+          brand: 'Samsung',
           totalLoanAmount: '15000',
           emiAmount: '2500',
           totalEmis: '6',
@@ -241,6 +251,7 @@ export default function DevicesPage() {
       d.customerName.toLowerCase().includes(search.toLowerCase()) ||
       d.customerPhone.includes(search) ||
       d.imei1.includes(search) ||
+      (d.imei2 && d.imei2.includes(search)) ||
       d.deviceModel.toLowerCase().includes(search.toLowerCase())
 
     if (statusFilter === 'LOCKED') return matchesSearch && d.isLocked
@@ -282,13 +293,24 @@ export default function DevicesPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsEnrollModalOpen(true)}
-          className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm min-h-[44px] cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Register New Customer Phone</span>
-        </button>
+        {/* Top Header Buttons: QR Setup + Register Phone */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setShowQrModal(true)}
+            className="flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm transition-all border border-slate-300 min-h-[44px] cursor-pointer"
+          >
+            <QrCode className="w-4 h-4 text-slate-700" />
+            <span>📲 Setup QR</span>
+          </button>
+
+          <button
+            onClick={() => setIsEnrollModalOpen(true)}
+            className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm min-h-[44px] cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Register New Customer Phone</span>
+          </button>
+        </div>
       </div>
 
       {/* Search and Filter Row */}
@@ -297,7 +319,7 @@ export default function DevicesPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by Customer Name, Phone, Model, or IMEI..."
+            placeholder="Search by Customer Name, Phone, Model, IMEI 1 or IMEI 2..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white min-h-[44px]"
@@ -340,7 +362,7 @@ export default function DevicesPage() {
               <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3.5">Customer Details</th>
-                  <th className="px-4 py-3.5">Device & Telemetry</th>
+                  <th className="px-4 py-3.5">Device & Dual IMEI</th>
                   <th className="px-4 py-3.5">EMI Ledger</th>
                   <th className="px-4 py-3.5">Lock Status</th>
                   <th className="px-4 py-3.5 text-center">Counter Actions (Cash / Lock)</th>
@@ -373,13 +395,14 @@ export default function DevicesPage() {
                         </div>
                       </td>
 
-                      {/* Device Model & Battery */}
+                      {/* Device Model & Dual IMEI */}
                       <td className="px-4 py-4">
                         <span className="font-semibold text-slate-800 block">{d.deviceModel}</span>
-                        <span className="text-[11px] text-slate-500 font-mono block">
-                          IMEI: {d.imei1}
-                        </span>
-                        <div className="flex items-center space-x-2 mt-1 text-xs text-slate-500">
+                        <div className="text-[11px] text-slate-500 font-mono block space-y-0.5 mt-0.5">
+                          <div>IMEI 1: {d.imei1}</div>
+                          {d.imei2 && <div>IMEI 2: {d.imei2}</div>}
+                        </div>
+                        <div className="flex items-center space-x-2 mt-1.5 text-xs text-slate-500">
                           <span className="flex items-center gap-1 font-medium">
                             <Battery className="w-3.5 h-3.5 text-emerald-600" />
                             <span>{d.batteryLevel ?? 80}%</span>
@@ -574,14 +597,17 @@ export default function DevicesPage() {
         </div>
       )}
 
-      {/* MODAL 2: Register New Customer Phone */}
+      {/* MODAL 2: Register New Customer Phone (With Dual SIM: IMEI 1 & IMEI 2) */}
       {isEnrollModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 my-8">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center space-x-2">
                 <Smartphone className="w-6 h-6 text-blue-600" />
-                <h3 className="text-lg font-bold text-slate-900">Register New Phone</h3>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Register New Customer Phone</h3>
+                  <p className="text-xs text-slate-500">Supports Dual SIM (IMEI 1 & IMEI 2)</p>
+                </div>
               </div>
               <button
                 onClick={() => setIsEnrollModalOpen(false)}
@@ -592,6 +618,7 @@ export default function DevicesPage() {
             </div>
 
             <form onSubmit={handleEnrollDevice} className="space-y-4">
+              {/* Customer Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-slate-600 font-semibold block mb-1">Customer Full Name *</label>
@@ -617,24 +644,62 @@ export default function DevicesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Dual IMEI Fields: IMEI 1 and IMEI 2 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <div>
-                  <label className="text-xs text-slate-600 font-semibold block mb-1">Phone IMEI 1 *</label>
+                  <label className="text-xs text-slate-700 font-bold block mb-1">
+                    Phone IMEI 1 * <span className="text-[10px] text-blue-600">(Primary SIM)</span>
+                  </label>
                   <input
                     required
                     type="text"
-                    placeholder="15-digit IMEI number"
+                    placeholder="15-digit IMEI 1"
+                    maxLength={17}
                     value={newDeviceForm.imei1}
                     onChange={(e) => setNewDeviceForm({ ...newDeviceForm, imei1: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono focus:outline-none focus:border-blue-600 focus:bg-white min-h-[44px]"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-medium focus:outline-none focus:border-blue-600 min-h-[44px]"
                   />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-700 font-bold block mb-1">
+                    Phone IMEI 2 <span className="text-[10px] text-slate-500">(Secondary SIM / Dual)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="15-digit IMEI 2 (Optional)"
+                    maxLength={17}
+                    value={newDeviceForm.imei2}
+                    onChange={(e) => setNewDeviceForm({ ...newDeviceForm, imei2: e.target.value })}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-mono font-medium focus:outline-none focus:border-blue-600 min-h-[44px]"
+                  />
+                </div>
+              </div>
+
+              {/* Model & Brand */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-600 font-semibold block mb-1">Brand</label>
+                  <select
+                    value={newDeviceForm.brand}
+                    onChange={(e) => setNewDeviceForm({ ...newDeviceForm, brand: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white min-h-[44px]"
+                  >
+                    <option value="Samsung">Samsung</option>
+                    <option value="Xiaomi">Xiaomi / Redmi</option>
+                    <option value="Vivo">Vivo</option>
+                    <option value="Realme">Realme</option>
+                    <option value="Oppo">Oppo</option>
+                    <option value="OnePlus">OnePlus</option>
+                    <option value="Motorola">Motorola</option>
+                    <option value="Android">Other Android</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs text-slate-600 font-semibold block mb-1">Device Model *</label>
                   <input
                     required
                     type="text"
-                    placeholder="e.g. Redmi 13C / Vivo Y28"
+                    placeholder="e.g. Galaxy A15 / Redmi 13C"
                     value={newDeviceForm.deviceModel}
                     onChange={(e) => setNewDeviceForm({ ...newDeviceForm, deviceModel: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white min-h-[44px]"
@@ -642,6 +707,7 @@ export default function DevicesPage() {
                 </div>
               </div>
 
+              {/* EMI Numbers */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-slate-600 font-semibold block mb-1">Total Loan (₹)</label>
@@ -688,6 +754,58 @@ export default function DevicesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: Setup QR Code Popup (Instant Access) */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 text-center">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center space-x-2 text-slate-900 font-bold">
+                <QrCode className="w-5 h-5 text-blue-600" />
+                <span>Device Provisioning QR</span>
+              </div>
+              <button
+                onClick={() => setShowQrModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-md inline-block mx-auto">
+              <img
+                src="/sarvam_enrollment_qr.png"
+                alt="Sarvam Provisioning QR Code"
+                className="w-56 h-56 object-contain mx-auto"
+              />
+            </div>
+
+            <div className="text-xs text-slate-600 text-left space-y-1.5 p-3 rounded-xl bg-blue-50 border border-blue-200">
+              <p className="font-bold text-blue-900">📲 Setup Steps:</p>
+              <p>1. Naye phone ki <b>"Welcome" screen par 6 baar tap karein</b>.</p>
+              <p>2. Scanner aate hi is QR ko scan karein.</p>
+              <p>3. App auto-install hokar <b>Device Owner</b> ban jayegi!</p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <a
+                href="/sarvam_enrollment_qr.png"
+                download="sarvam_enrollment_qr.png"
+                className="flex-1 inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300 min-h-[44px]"
+              >
+                <Download className="w-4 h-4" />
+                <span>Save QR Image</span>
+              </a>
+              <button
+                onClick={() => setShowQrModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm min-h-[44px]"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
