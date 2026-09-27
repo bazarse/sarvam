@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
           orderBy: { installmentNo: 'asc' },
         },
         shop: {
-          select: { shopName: true, upiId: true, phone: true },
+          select: { id: true, shopName: true, phone: true, address: true, ownerName: true },
         },
       },
     })

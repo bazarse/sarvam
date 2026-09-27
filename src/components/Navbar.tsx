@@ -7,6 +7,7 @@ import {
   ShieldCheck, 
   LayoutDashboard, 
   Smartphone, 
+  Store,
   MapPin, 
   QrCode, 
   Menu, 
@@ -22,8 +23,9 @@ export default function Navbar() {
   const navLinks = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Devices', href: '/devices', icon: Smartphone },
+    { name: 'Stores', href: '/stores', icon: Store },
     { name: 'Live Map', href: '/map', icon: MapPin },
-    { name: 'Enrollment QR', href: '/enroll', icon: QrCode },
+    { name: 'Setup QR', href: '/enroll', icon: QrCode },
   ]
 
   return (
@@ -32,17 +34,17 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo & Name */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-cyan-500 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-bold text-lg text-slate-900 tracking-tight">SARVAM</span>
-                <span className="text-[11px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded border border-blue-200">
-                  PRO
+                <span className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">DEVI MOBILE</span>
+                <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-1.5 py-0.5 rounded border border-blue-200">
+                  2 STORES
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Device & EMI Management</p>
+              <p className="text-[11px] text-slate-500 font-medium">EMI Locker & Counter Control</p>
             </div>
           </Link>
 

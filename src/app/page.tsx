@@ -4,15 +4,16 @@ import {
   Smartphone, 
   ShieldAlert, 
   CheckCircle2, 
-  Clock, 
   IndianRupee, 
-  PlusCircle, 
   QrCode, 
   ArrowRight,
-  TrendingUp,
   AlertTriangle,
   Banknote,
-  Database
+  Database,
+  Store,
+  Phone,
+  MapPin,
+  ExternalLink
 } from 'lucide-react'
 
 // Force dynamic execution at runtime to avoid build-time database connection failures
@@ -28,9 +29,13 @@ export default async function DashboardPage() {
     where: { status: 'PAID' },
   })
 
-  const pendingEmis = await prisma.emiSchedule.aggregate({
-    _sum: { amount: true },
-    where: { status: { in: ['PENDING', 'OVERDUE'] } },
+  const shops = await prisma.shop.findMany({
+    orderBy: { createdAt: 'asc' },
+    include: {
+      _count: {
+        select: { devices: true },
+      },
+    },
   })
 
   const recentAlerts = await prisma.deviceActivityLog.findMany({
@@ -44,9 +49,12 @@ export default async function DashboardPage() {
   })
 
   const devicesList = await prisma.device.findMany({
-    take: 5,
+    take: 6,
     orderBy: { updatedAt: 'desc' },
     include: {
+      shop: {
+        select: { shopName: true, phone: true },
+      },
       emiSchedules: {
         where: { status: { in: ['PENDING', 'OVERDUE'] } },
         orderBy: { installmentNo: 'asc' },
@@ -57,7 +65,7 @@ export default async function DashboardPage() {
 
   const stats = [
     {
-      title: 'Total Enrolled',
+      title: 'Total Phones',
       value: totalDevices,
       sub: 'All Android devices',
       icon: Smartphone,
@@ -68,25 +76,25 @@ export default async function DashboardPage() {
     {
       title: 'Active & Paid',
       value: activeDevices,
-      sub: 'Phones running normally',
+      sub: 'Running normally',
       icon: CheckCircle2,
       color: 'text-emerald-600',
       bg: 'bg-emerald-50/60 border-emerald-200/60',
       iconBg: 'bg-emerald-100 text-emerald-700',
     },
     {
-      title: 'Locked Devices',
+      title: 'Locked Phones',
       value: lockedDevices,
-      sub: 'Overdue or manual lock',
+      sub: 'Overdue installment',
       icon: ShieldAlert,
       color: 'text-rose-600',
       bg: 'bg-rose-50/60 border-rose-200/60',
       iconBg: 'bg-rose-100 text-rose-700',
     },
     {
-      title: 'Total Collected',
+      title: 'Cash Collected',
       value: `₹${(paidEmis._sum.amount ?? 0).toLocaleString('en-IN')}`,
-      sub: 'Cash & UPI payments',
+      sub: 'In-store cash received',
       icon: IndianRupee,
       color: 'text-amber-600',
       bg: 'bg-amber-50/60 border-amber-200/60',
@@ -95,81 +103,137 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-xs">
         <div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-              Retailer Command Center
+              Devi Mobile & Accessories
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>2 Stores Active</span>
             </span>
             <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
               <Database className="w-3 h-3 text-emerald-600" />
               <span>Live Supabase Cloud</span>
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1.5 tracking-tight">
-            Sarvam Management
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
+            Counter & Locker Command Center
           </h1>
-          <p className="text-sm text-slate-600 mt-0.5">
-            Dukan par cash aane par 1-click me unlock karein aur phones ko remotely control karein
+          <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+            Dukan par cash aane par 1-click me unlock karein aur sabhi stores ke phones remotely control karein.
           </p>
         </div>
 
-        {/* Quick Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/devices"
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm min-h-[44px]"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm min-h-[44px]"
           >
             <Smartphone className="w-4 h-4" />
             <span>Manage Devices</span>
           </Link>
 
           <Link
-            href="/enroll"
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm transition-all border border-slate-200 min-h-[44px]"
+            href="/stores"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm transition-all border border-slate-200 min-h-[44px]"
           >
-            <QrCode className="w-4 h-4 text-slate-700" />
-            <span>Setup QR</span>
+            <Store className="w-4 h-4 text-slate-700" />
+            <span>View Stores</span>
           </Link>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* KPI Cards Grid (2 cols on mobile, 4 on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {stats.map((stat, idx) => {
           const Icon = stat.icon
           return (
             <div
               key={idx}
-              className={`p-5 rounded-2xl bg-white border ${stat.bg} shadow-xs relative overflow-hidden`}
+              className={`p-4 sm:p-5 rounded-2xl bg-white border ${stat.bg} shadow-xs relative overflow-hidden`}
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-500">{stat.title}</p>
-                <div className={`p-2.5 rounded-xl ${stat.iconBg}`}>
-                  <Icon className="w-5 h-5" />
+                <p className="text-xs sm:text-sm font-semibold text-slate-500">{stat.title}</p>
+                <div className={`p-2 sm:p-2.5 rounded-xl ${stat.iconBg}`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
+              <p className="text-xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
                 {stat.value}
               </p>
-              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1 font-medium">
-                <span>{stat.sub}</span>
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-1 font-medium truncate">
+                {stat.sub}
               </p>
             </div>
           )
         })}
       </div>
 
-      {/* Main Split Section: Devices Table & Activity Feed */}
+      {/* Store Branches Quick Cards */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Store className="w-5 h-5 text-blue-600" />
+            <span>Retail Store Branches (Live Call Numbers)</span>
+          </h2>
+          <Link href="/stores" className="text-xs font-bold text-blue-600 hover:underline min-h-[44px] flex items-center">
+            Manage Stores →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          {shops.map((s, idx) => (
+            <div
+              key={s.id}
+              className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-[10px] font-bold uppercase text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    Branch #{idx + 1}
+                  </span>
+                  <h3 className="text-sm font-bold text-slate-900">{s.shopName}</h3>
+                </div>
+                <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>{s.address}</span>
+                </p>
+                <p className="text-xs text-slate-700 font-semibold flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Dialer: {s.phone}</span>
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2 shrink-0">
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">
+                  {s._count.devices} Phones
+                </span>
+                <a
+                  href={`tel:${s.phone}`}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold min-h-[38px] flex items-center gap-1"
+                >
+                  <Phone className="w-3 h-3" />
+                  <span>Call</span>
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Split Section: Customer Devices & Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Recent Devices Overview */}
+        {/* Left 2 Cols: Customer Devices Overview */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Customer Devices (Live DB)</h2>
-              <p className="text-xs text-slate-500">Real-time status synced with Supabase PostgreSQL</p>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Customer Devices (Real Data)</h2>
+              <p className="text-xs text-slate-500">Synced in real-time with Devi Mobile database</p>
             </div>
             <Link
               href="/devices"
@@ -180,14 +244,15 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          {/* Table Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          {/* Desktop Table View (Hidden on mobile) */}
+          <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="table-responsive">
               <table className="w-full text-left text-sm text-slate-600">
                 <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3.5">Customer & Phone</th>
-                    <th className="px-4 py-3.5">Device Model</th>
+                    <th className="px-4 py-3.5">Assigned Store</th>
+                    <th className="px-4 py-3.5">Device & IMEI</th>
                     <th className="px-4 py-3.5">Next Due</th>
                     <th className="px-4 py-3.5">Lock Status</th>
                     <th className="px-4 py-3.5 text-right">Action</th>
@@ -205,6 +270,11 @@ export default async function DashboardPage() {
                           <span className="text-xs text-slate-500 font-mono">{d.customerPhone}</span>
                         </td>
                         <td className="px-4 py-3.5">
+                          <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 block truncate max-w-[150px]">
+                            {d.shop?.shopName ?? 'Devi Mobile'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
                           <span className="text-slate-800 font-medium block">{d.deviceModel}</span>
                           <span className="text-[11px] text-slate-400 font-mono">IMEI: ...{d.imei1.slice(-6)}</span>
                         </td>
@@ -213,7 +283,7 @@ export default async function DashboardPage() {
                             <div>
                               <span className="text-amber-700 font-bold">₹{nextEmi.amount}</span>
                               <span className="text-[11px] text-slate-500 block">
-                                Inst. #{nextEmi.installmentNo}
+                                #{nextEmi.installmentNo}
                               </span>
                             </div>
                           ) : (
@@ -246,20 +316,83 @@ export default async function DashboardPage() {
               </table>
             </div>
           </div>
+
+          {/* Mobile Card-Based View (md:hidden - Glitch-Free on Phones!) */}
+          <div className="md:hidden space-y-3">
+            {devicesList.map((d) => {
+              const nextEmi = d.emiSchedules[0]
+              return (
+                <div
+                  key={d.id}
+                  className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <Link href={`/devices/${d.id}`} className="font-bold text-slate-900 text-base hover:text-blue-600">
+                        {d.customerName}
+                      </Link>
+                      <a href={`tel:${d.customerPhone}`} className="text-xs text-blue-600 block font-mono font-medium mt-0.5">
+                        📞 {d.customerPhone}
+                      </a>
+                    </div>
+                    {d.isLocked ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        🔒 Locked
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        🟢 Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Assigned Branch</span>
+                      <span className="font-semibold text-slate-800 truncate block">
+                        {d.shop?.shopName?.replace('Devi Mobile & Accessories', '').trim() || 'Main Branch'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Device</span>
+                      <span className="font-semibold text-slate-800 truncate block">{d.deviceModel}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">IMEI</span>
+                      <span className="font-mono text-slate-600">...{d.imei1.slice(-6)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Pending EMI</span>
+                      <span className="font-bold text-amber-700">
+                        {nextEmi ? `₹${nextEmi.amount}` : 'All Paid'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/devices/${d.id}`}
+                    className="w-full flex items-center justify-center space-x-1.5 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 min-h-[44px]"
+                  >
+                    <span>View Full Details & Controls</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Right Col: Live Security & Activity Logs */}
+        {/* Right Col: Live Activity & Logs */}
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Live Activity & Alerts</h2>
-            <p className="text-xs text-slate-500">Real-time SIM events, cash receipts, and locks</p>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900">Live Activity & Alerts</h2>
+            <p className="text-xs text-slate-500">Real-time SIM swaps, cash entries, and lock events</p>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 divide-y divide-slate-100">
             {recentAlerts.map((log) => {
               const isSimAlert = log.activityType.includes('SIM')
               const isCash = log.activityType === 'CASH_PAID'
-              const isLock = log.activityType.includes('LOCK')
 
               return (
                 <div key={log.id} className="py-3 first:pt-0 last:pb-0 flex items-start space-x-3">

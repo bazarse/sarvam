@@ -19,11 +19,14 @@ export async function GET(
       success: true,
       message: 'Shop details retrieved',
       data: {
-        shopName: shop?.shopName ?? 'Sarvam Management',
-        ownerName: shop?.ownerName ?? 'Admin Partner',
+        shopName: shop?.shopName ?? 'Devi Mobile & Accessories',
+        ownerName: shop?.ownerName ?? 'Devi Lal',
         phone: shop?.phone ?? '9876543210',
-        email: shop?.email ?? 'support@sarvam.com',
-        upiId: shop?.upiId ?? 'sarvam@upi',
+        shopPhone: shop?.phone ?? '9876543210',
+        address: shop?.address ?? 'Shop 14, Near Clock Tower, Main Market',
+        shopAddress: shop?.address ?? 'Shop 14, Near Clock Tower, Main Market',
+        email: shop?.email ?? 'devimobile.main@gmail.com',
+        shopEmail: shop?.email ?? 'devimobile.main@gmail.com',
       },
     })
   } catch (error) {

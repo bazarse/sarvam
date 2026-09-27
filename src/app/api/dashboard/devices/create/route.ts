@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       emiAmount,
       totalEmis,
       firstDueDate,
+      shopId,
     } = body
 
     if (!imei1 || !customerName || !customerPhone || !deviceModel) {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const shop = await prisma.shop.findFirst()
+    const defaultShop = await prisma.shop.findFirst()
 
     const device = await prisma.device.create({
       data: {
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
         totalLoanAmount: parseFloat(totalLoanAmount || '15000'),
         emiAmount: parseFloat(emiAmount || '2500'),
         totalEmis: parseInt(totalEmis || '6'),
-        shopId: shop?.id,
+        shopId: shopId || defaultShop?.id,
       },
     })
 

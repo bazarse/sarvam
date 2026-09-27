@@ -27,9 +27,9 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 antialiased pb-16 md:pb-0">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 antialiased pb-28 md:pb-8">
         <Navbar />
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           {children}
         </main>
       </body>
