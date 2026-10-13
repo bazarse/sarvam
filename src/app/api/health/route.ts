@@ -27,7 +27,7 @@ export async function GET() {
       sentryMonitoring: !!process.env.SENTRY_DSN,
     }
 
-    const isHealthy = dbLatencyMs < 2000
+    const isHealthy = dbLatencyMs < 5000
 
     return NextResponse.json(
       {
