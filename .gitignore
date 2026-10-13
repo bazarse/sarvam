@@ -34,10 +34,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 !.env.example
-!.env.production
 
 # vercel
 .vercel
@@ -47,3 +46,9 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# backups and subrepos
+backups/
+Android-MDM/
+
+.github/

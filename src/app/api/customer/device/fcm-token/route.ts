@@ -1,41 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { toLatLng } from '@/lib/validate'
+import { authenticateDevice } from '@/lib/device-auth'
 
+// Called by the Android app to register/update its FCM token. The device must
+// already be claimed (it got its device token from POST /api/customer/device/claim
+// during enrollment), so this endpoint is authenticated and no longer
+// self-registers unknown IMEIs — that path moved behind the enrollment key.
+//
+// FCM is optional and non-authoritative in this system: google-services.json is
+// a placeholder, so a token may never actually be usable. Storing it is
+// harmless and lets a real Firebase project (if ever configured) nudge the
+// phone to poll sooner.
 export async function PUT(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { fcmToken, imei1, latitude, longitude } = body
+    const body = await req.json().catch(() => null)
+    const imei1 = body?.imei1
+    const fcmToken = typeof body?.fcmToken === 'string' ? body.fcmToken.trim() : ''
 
-    if (!imei1) {
-      return NextResponse.json({ success: false, message: 'IMEI is required' }, { status: 400 })
+    const auth = await authenticateDevice(req, imei1)
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, message: auth.reason }, { status: auth.status })
     }
 
-    const updated = await prisma.device.upsert({
-      where: { imei1 },
-      update: {
-        fcmToken,
+    if (fcmToken.length > 4096) {
+      return NextResponse.json({ success: false, message: 'Invalid FCM token' }, { status: 400 })
+    }
+
+    const loc = toLatLng(body?.latitude, body?.longitude)
+    const device = await prisma.device.update({
+      where: { id: auth.device.id },
+      data: {
+        ...(fcmToken ? { fcmToken } : {}),
         isOnline: true,
         lastPingAt: new Date(),
-        ...(latitude ? { lastKnownLat: latitude } : {}),
-        ...(longitude ? { lastKnownLng: longitude } : {}),
-      },
-      create: {
-        imei1,
-        customerName: 'New Device User',
-        customerPhone: '9999999999',
-        deviceModel: 'Android Device',
-        fcmToken,
-        isOnline: true,
-        lastPingAt: new Date(),
-        ...(latitude ? { lastKnownLat: latitude } : {}),
-        ...(longitude ? { lastKnownLng: longitude } : {}),
+        ...(loc ? { lastKnownLat: loc.lat, lastKnownLng: loc.lng } : {}),
       },
     })
 
     return NextResponse.json({
       success: true,
       message: 'FCM token registered successfully',
-      data: { deviceId: updated.id },
+      data: { deviceId: device.id, isLocked: device.isLocked },
     })
   } catch (error) {
     console.error('Error updating FCM token:', error)

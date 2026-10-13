@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { 
   Store, 
@@ -12,7 +12,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Loader2,
-  Edit2,
   X,
   ExternalLink
 } from 'lucide-react'
@@ -44,29 +43,44 @@ export default function StoresPage() {
     email: '',
   })
 
-  useEffect(() => {
-    fetchShops()
+  const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ text, type })
+    setTimeout(() => setToastMessage(null), 4000)
   }, [])
 
-  const fetchShops = async () => {
+  const refreshShops = useCallback(async () => {
     try {
-      setLoading(true)
       const res = await fetch('/api/dashboard/shops')
       const data = await res.json()
       if (data.success) {
         setShops(data.shops)
       }
-    } catch (e) {
-      console.error('Failed to fetch shops', e)
+    } catch {
+      showToast('Failed to load stores', 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
 
-  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage({ text, type })
-    setTimeout(() => setToastMessage(null), 4000)
-  }
+  useEffect(() => {
+    let ignore = false
+    fetch('/api/dashboard/shops')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore && data.success) {
+          setShops(data.shops)
+        }
+      })
+      .catch(() => {
+        if (!ignore) showToast('Failed to load stores', 'error')
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [showToast])
 
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,11 +101,11 @@ export default function StoresPage() {
         showToast('Store created successfully!')
         setShowAddModal(false)
         setForm({ shopName: '', ownerName: '', phone: '', address: '', email: '' })
-        fetchShops()
+        refreshShops()
       } else {
         showToast(data.message || 'Failed to create store', 'error')
       }
-    } catch (e) {
+    } catch {
       showToast('Network error while saving', 'error')
     } finally {
       setSaving(false)
@@ -123,12 +137,12 @@ export default function StoresPage() {
         <div>
           <div className="flex items-center space-x-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-              Devi Mobile Multi-Store Manager
+              Multi-Store Manager
             </span>
             <span className="text-xs text-slate-500 font-medium">Live Cloud</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1.5 tracking-tight">
-            Manage Retail Stores & Branches
+            Retail Stores & Branches
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
             Phones assigned to each store will show that store’s name, address, and 1-tap call button when locked.
@@ -203,7 +217,7 @@ export default function StoresPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
                 <Link
                   href={`/devices?shop=${shop.id}`}
                   className="inline-flex items-center space-x-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 min-h-[44px]"
@@ -217,7 +231,7 @@ export default function StoresPage() {
                   className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold transition-colors min-h-[44px]"
                 >
                   <Phone className="w-3.5 h-3.5" />
-                  <span>Test Call ({shop.phone})</span>
+                  <span>Call Store</span>
                 </a>
               </div>
             </div>
@@ -250,7 +264,7 @@ export default function StoresPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g., Devi Mobile & Accessories (Branch 3)"
+                  placeholder="e.g., Main Branch / South Store"
                   value={form.shopName}
                   onChange={(e) => setForm({ ...form, shopName: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none min-h-[44px]"
@@ -274,7 +288,7 @@ export default function StoresPage() {
                 <label className="text-xs font-bold text-slate-700 block mb-1">Branch In-Charge / Owner Name</label>
                 <input
                   type="text"
-                  placeholder="e.g., Devi Lal / Store Manager"
+                  placeholder="e.g., Store Manager"
                   value={form.ownerName}
                   onChange={(e) => setForm({ ...form, ownerName: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none min-h-[44px]"
@@ -285,7 +299,7 @@ export default function StoresPage() {
                 <label className="text-xs font-bold text-slate-700 block mb-1">Store Address / Landmark</label>
                 <textarea
                   rows={2}
-                  placeholder="e.g., Shop 5, Near Bus Stand, Main Road"
+                  placeholder="e.g., Shop 5, Near Market, Main Road"
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none"

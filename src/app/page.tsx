@@ -5,15 +5,13 @@ import {
   ShieldAlert, 
   CheckCircle2, 
   IndianRupee, 
-  QrCode, 
   ArrowRight,
   AlertTriangle,
   Banknote,
   Database,
   Store,
   Phone,
-  MapPin,
-  ExternalLink
+  MapPin
 } from 'lucide-react'
 
 // Force dynamic execution at runtime to avoid build-time database connection failures

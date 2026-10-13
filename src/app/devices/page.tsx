@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { 
   Smartphone, 
@@ -17,14 +18,11 @@ import {
   AlertCircle,
   Phone,
   Battery,
-  ShieldAlert,
   Loader2,
   X,
-  Database,
   QrCode,
   Download,
   Store,
-  MapPin,
   ChevronRight
 } from 'lucide-react'
 
@@ -105,27 +103,21 @@ export default function DevicesPage() {
     shopId: '',
   })
 
-  useEffect(() => {
-    fetchDevices()
-    fetchShops()
-  }, [])
-
-  const fetchDevices = async () => {
+  const fetchDevices = useCallback(async () => {
     try {
-      setLoading(true)
       const res = await fetch('/api/dashboard/devices')
       const data = await res.json()
       if (data.success) {
         setDevices(data.devices)
       }
-    } catch (e) {
-      console.error('Failed to fetch devices', e)
+    } catch {
+      // ignore
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchShops = async () => {
+  const fetchShops = useCallback(async () => {
     try {
       const res = await fetch('/api/dashboard/shops')
       const data = await res.json()
@@ -135,10 +127,39 @@ export default function DevicesPage() {
           setNewDeviceForm(prev => ({ ...prev, shopId: prev.shopId || data.shops[0].id }))
         }
       }
-    } catch (e) {
-      console.error('Failed to fetch shops', e)
+    } catch {
+      // ignore
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let ignore = false
+    fetch('/api/dashboard/devices')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore && data.success) setDevices(data.devices)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+
+    fetch('/api/dashboard/shops')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore && data.success && data.shops) {
+          setShops(data.shops)
+          if (data.shops.length > 0) {
+            setNewDeviceForm((prev) => ({ ...prev, shopId: prev.shopId || data.shops[0].id }))
+          }
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type })
@@ -152,12 +173,13 @@ export default function DevicesPage() {
       const res = await fetch(`/api/dashboard/devices/${id}/lock`, { method: 'POST' })
       const data = await res.json()
       if (data.success) {
-        showToast('Phone locked successfully! Customer will see payment screen.')
+        if (data.pushSent) showToast('Phone locked successfully! Customer will see payment screen.')
+        else showToast(data.message, 'error')
         fetchDevices()
       } else {
         showToast(data.message || 'Failed to lock phone', 'error')
       }
-    } catch (e) {
+    } catch {
       showToast('Network error while locking', 'error')
     } finally {
       setActionLoading(null)
@@ -171,12 +193,13 @@ export default function DevicesPage() {
       const res = await fetch(`/api/dashboard/devices/${id}/unlock`, { method: 'POST' })
       const data = await res.json()
       if (data.success) {
-        showToast('Phone unlocked successfully!')
+        if (data.pushSent) showToast('Phone unlocked successfully!')
+        else showToast(data.message, 'error')
         fetchDevices()
       } else {
         showToast(data.message || 'Failed to unlock phone', 'error')
       }
-    } catch (e) {
+    } catch {
       showToast('Network error while unlocking', 'error')
     } finally {
       setActionLoading(null)
@@ -194,10 +217,13 @@ export default function DevicesPage() {
       })
       const data = await res.json()
       if (data.success) {
-        showToast(!currentlyActive ? '🚨 Siren Alarm activated on phone!' : 'Siren stopped.')
+        if (data.pushSent) showToast(!currentlyActive ? '🚨 Siren Alarm activated on phone!' : 'Siren stopped.')
+        else showToast(data.message, 'error')
         fetchDevices()
+      } else {
+        showToast(data.message || 'Failed to toggle siren', 'error')
       }
-    } catch (e) {
+    } catch {
       showToast('Error toggling siren', 'error')
     } finally {
       setActionLoading(null)
@@ -223,7 +249,7 @@ export default function DevicesPage() {
       } else {
         showToast(data.message || 'Failed to process payment', 'error')
       }
-    } catch (e) {
+    } catch {
       showToast('Network error processing cash payment', 'error')
     } finally {
       setActionLoading(null)
@@ -243,8 +269,10 @@ export default function DevicesPage() {
       if (data.success) {
         showToast('Extended +2 days grace period. Phone is unlocked.')
         fetchDevices()
+      } else {
+        showToast(data.message || 'Failed to extend grace period', 'error')
       }
-    } catch (e) {
+    } catch {
       showToast('Error extending grace period', 'error')
     } finally {
       setActionLoading(null)
@@ -280,7 +308,7 @@ export default function DevicesPage() {
       } else {
         showToast(data.message || 'Failed to register', 'error')
       }
-    } catch (err) {
+    } catch {
       showToast('Error registering device', 'error')
     }
   }
@@ -356,7 +384,10 @@ export default function DevicesPage() {
           </button>
 
           <button
-            onClick={() => setIsEnrollModalOpen(true)}
+            onClick={() => {
+              fetchShops()
+              setIsEnrollModalOpen(true)
+            }}
             className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm min-h-[44px] cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -493,7 +524,7 @@ export default function DevicesPage() {
                     <div className="flex items-center space-x-2 text-slate-500 font-medium">
                       <span className="flex items-center gap-1">
                         <Battery className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{d.batteryLevel ?? 80}%</span>
+                        <span>{d.batteryLevel != null ? `${d.batteryLevel}%` : '--'}</span>
                       </span>
                       <span>•</span>
                       <span className={d.isOnline ? 'text-emerald-600 font-bold' : 'text-slate-400'}>
@@ -683,7 +714,7 @@ export default function DevicesPage() {
                           <div className="flex items-center space-x-2 mt-1.5 text-xs text-slate-500">
                             <span className="flex items-center gap-1 font-medium">
                               <Battery className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>{d.batteryLevel ?? 80}%</span>
+                              <span>{d.batteryLevel != null ? `${d.batteryLevel}%` : '--'}</span>
                             </span>
                             <span>•</span>
                             <span className={d.isOnline ? 'text-emerald-600 font-medium' : 'text-slate-400'}>
@@ -1072,16 +1103,18 @@ export default function DevicesPage() {
             </div>
 
             <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-md inline-block mx-auto">
-              <img
+              <Image
                 src="/sarvam_enrollment_qr.png"
                 alt="Sarvam Provisioning QR Code"
+                width={224}
+                height={224}
                 className="w-56 h-56 object-contain mx-auto"
               />
             </div>
 
             <div className="text-xs text-slate-600 text-left space-y-1.5 p-3 rounded-xl bg-blue-50 border border-blue-200">
               <p className="font-bold text-blue-900">📲 Setup Steps:</p>
-              <p>1. Naye phone ki <b>"Welcome" screen par 6 baar tap karein</b>.</p>
+              <p>1. Naye phone ki <b>&quot;Welcome&quot; screen par 6 baar tap karein</b>.</p>
               <p>2. Scanner aate hi is QR ko scan karein.</p>
               <p>3. App auto-install hokar <b>Device Owner</b> ban jayegi!</p>
             </div>

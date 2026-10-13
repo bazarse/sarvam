@@ -6,7 +6,7 @@ import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth'
 // - /login and /api/auth/* (login flow)
 // - /api/customer/* (called by the Android app, which has no admin session)
 // - static assets, the APK and the enrollment QR image (excluded by the matcher)
-const PUBLIC_PREFIXES = ['/login', '/enroll', '/api/auth/', '/api/customer/', '/api/cron/']
+const PUBLIC_PREFIXES = ['/login', '/enroll', '/api/auth/', '/api/customer/', '/api/cron/', '/api/health']
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl

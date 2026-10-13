@@ -31,11 +31,14 @@ Built with **Next.js 15 (App Router)**, **TypeScript**, **Tailwind CSS**, **Pris
 
 1. Go to [Vercel](https://vercel.com) and click **"Add New Project"** ➔ **"Import Git Repository"**.
 2. Select **`bazarse/sarvam`**.
-3. Under **Environment Variables**, add:
-   - `DATABASE_URL`: `postgresql://postgres:Harshita%401920@db.bllpvafybywekxzpffrr.supabase.co:5432/postgres`
-   - `DIRECT_URL`: `postgresql://postgres:Harshita%401920@db.bllpvafybywekxzpffrr.supabase.co:5432/postgres`
-   - `NEXT_PUBLIC_SUPABASE_URL`: `https://bllpvafybywekxzpffrr.supabase.co`
+3. Under **Environment Variables**, add (never commit real values to git):
+   - `DATABASE_URL`: Supabase pooled connection string (port 6543, `?pgbouncer=true`)
+   - `DIRECT_URL`: Supabase direct/session connection string (port 5432)
+   - `NEXT_PUBLIC_SUPABASE_URL`: `https://<project-ref>.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: `<Your Supabase Anon Key>`
+   - `ADMIN_PASSWORD`: dashboard login password
+   - `ADMIN_SESSION_SECRET`: random string, 32+ characters
+   - `FIREBASE_SERVICE_ACCOUNT_JSON`: Firebase service account JSON (needed to push lock/unlock/siren to phones)
 4. Click **Deploy**! Your dashboard will be live at `https://sarvam.vercel.app` in under 60 seconds.
 
 ---
@@ -49,8 +52,8 @@ npm install
 # Run database migrations
 npx prisma db push
 
-# Seed demo devices
-npx tsx prisma/seed.ts
+# Seed demo devices (DELETES ALL DATA - only on a separate dev database!)
+SEED_CONFIRM=wipe-all-data npx tsx prisma/seed.ts
 
 # Start development server
 npm run dev

@@ -4,28 +4,22 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
-  Smartphone, 
   ArrowLeft, 
   Lock, 
   Unlock, 
   Volume2, 
   VolumeX, 
   Banknote, 
-  Clock, 
-  ShieldAlert, 
   Phone, 
-  Battery, 
   CheckCircle2, 
   AlertTriangle,
-  Calendar,
-  CreditCard,
   Trash2,
   Loader2,
-  FileText,
-  Database,
   Store,
   MapPin,
-  RefreshCw
+  ShieldCheck,
+  RotateCcw,
+  Cpu
 } from 'lucide-react'
 
 interface ShopItem {
@@ -36,12 +30,70 @@ interface ShopItem {
   ownerName?: string
 }
 
+interface EmiItem {
+  id: string
+  installmentNo: number
+  dueDate: string
+  amount: number
+  status: string
+  paymentMode?: string | null
+  paidAt?: string | null
+  receiptNumber?: string | null
+  remarks?: string | null
+}
+
+interface ActivityLogItem {
+  id: string
+  activityType: string
+  details?: string | null
+  ipAddress?: string | null
+  timestamp: string
+}
+
+interface DeviceDetail {
+  id: string
+  imei1: string
+  imei2?: string | null
+  customerName: string
+  customerPhone: string
+  customerAadhaar?: string | null
+  deviceModel: string
+  brand: string
+  status: string
+  isLocked: boolean
+  lockMessage?: string | null
+  isSirenActive: boolean
+  batteryLevel?: number | null
+  isOnline: boolean
+  lastPingAt: string
+  lastKnownLat?: number | null
+  lastKnownLng?: number | null
+  simIccid?: string | null
+  simOperator?: string | null
+  serialNumber?: string | null
+  appVersion?: string | null
+  androidVersion?: string | null
+  deviceTokenHash?: string | null
+  tokenBoundAt?: string | null
+  lastAuthAt?: string | null
+  offlineTimerHours: number
+  totalLoanAmount: number
+  emiAmount: number
+  totalEmis: number
+  paidEmis: number
+  gracePeriodDays: number
+  shopId?: string | null
+  shop?: ShopItem | null
+  emiSchedules?: EmiItem[]
+  activityLogs?: ActivityLogItem[]
+}
+
 export default function DeviceDetailPage() {
   const params = useParams()
   const router = useRouter()
   const id = params?.id as string
 
-  const [device, setDevice] = useState<any>(null)
+  const [device, setDevice] = useState<DeviceDetail | null>(null)
   const [shops, setShops] = useState<ShopItem[]>([])
   const [selectedShopId, setSelectedShopId] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -49,9 +101,30 @@ export default function DeviceDetailPage() {
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
+    let ignore = false
     if (id) {
-      fetchDeviceDetail()
-      fetchShops()
+      fetch(`/api/dashboard/devices/${id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!ignore && data.success) {
+            setDevice(data.device)
+            setSelectedShopId(data.device.shopId || '')
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!ignore) setLoading(false)
+        })
+
+      fetch('/api/dashboard/shops')
+        .then((res) => res.json())
+        .then((data) => {
+          if (!ignore && data.success && data.shops) setShops(data.shops)
+        })
+        .catch(() => {})
+    }
+    return () => {
+      ignore = true
     }
   }, [id])
 
@@ -71,18 +144,6 @@ export default function DeviceDetailPage() {
     }
   }
 
-  const fetchShops = async () => {
-    try {
-      const res = await fetch('/api/dashboard/shops')
-      const data = await res.json()
-      if (data.success && data.shops) {
-        setShops(data.shops)
-      }
-    } catch (e) {
-      console.error('Failed to fetch shops', e)
-    }
-  }
-
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToast({ text, type })
     setTimeout(() => setToast(null), 4000)
@@ -94,9 +155,13 @@ export default function DeviceDetailPage() {
       const res = await fetch(`/api/dashboard/devices/${id}/lock`, { method: 'POST' })
       const data = await res.json()
       if (data.success) {
-        showToast('Phone locked remotely')
+        showToast(data.pushSent ? 'Phone locked remotely' : data.message, data.pushSent ? 'success' : 'error')
         fetchDeviceDetail()
+      } else {
+        showToast(data.message || 'Failed to lock phone', 'error')
       }
+    } catch {
+      showToast('Network error while locking', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -108,9 +173,13 @@ export default function DeviceDetailPage() {
       const res = await fetch(`/api/dashboard/devices/${id}/unlock`, { method: 'POST' })
       const data = await res.json()
       if (data.success) {
-        showToast('Phone unlocked successfully')
+        showToast(data.pushSent ? 'Phone unlocked successfully' : data.message, data.pushSent ? 'success' : 'error')
         fetchDeviceDetail()
+      } else {
+        showToast(data.message || 'Failed to unlock phone', 'error')
       }
+    } catch {
+      showToast('Network error while unlocking', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -126,9 +195,14 @@ export default function DeviceDetailPage() {
       })
       const data = await res.json()
       if (data.success) {
-        showToast(enable ? 'Loud siren alarm activated!' : 'Siren alarm stopped')
+        if (data.pushSent) showToast(enable ? 'Loud siren alarm activated!' : 'Siren alarm stopped')
+        else showToast(data.message, 'error')
         fetchDeviceDetail()
+      } else {
+        showToast(data.message || 'Failed to toggle siren', 'error')
       }
+    } catch {
+      showToast('Network error while toggling siren', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -170,8 +244,29 @@ export default function DeviceDetailPage() {
       } else {
         showToast(data.message || 'Failed to switch store', 'error')
       }
-    } catch (e) {
+    } catch {
       showToast('Error switching store', 'error')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleResetToken = async () => {
+    if (!confirm('Are you sure you want to revoke the security token for this device? This will clear the TOFU lock and allow legitimate re-enrollment via QR setup.')) {
+      return
+    }
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/dashboard/devices/${id}/reset-token`, { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        showToast('Device security token reset! Device can now be re-enrolled via QR setup.', 'success')
+        fetchDeviceDetail()
+      } else {
+        showToast(data.message || 'Failed to reset token', 'error')
+      }
+    } catch {
+      showToast('Network error while resetting token', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -185,8 +280,10 @@ export default function DeviceDetailPage() {
       if (data.success) {
         alert('Device deleted from Supabase.')
         router.push('/devices')
+      } else {
+        alert(data.message || 'Failed to delete')
       }
-    } catch (e) {
+    } catch {
       alert('Failed to delete')
     }
   }
@@ -331,7 +428,7 @@ export default function DeviceDetailPage() {
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
             <span className="text-slate-500 font-medium block">Battery & Network</span>
             <span className="font-semibold text-slate-800 mt-1 inline-block">
-              🔋 {device.batteryLevel ?? 80}% • {device.simOperator ?? 'SIM Active'}
+              🔋 {device.batteryLevel != null ? `${device.batteryLevel}%` : 'Unknown'} • {device.simOperator ?? 'SIM info not reported'}
             </span>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
@@ -397,6 +494,92 @@ export default function DeviceDetailPage() {
         </div>
       </div>
 
+      {/* Device Security & TOFU Hardware Identity Card */}
+      <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span>Enterprise TOFU Security & Hardware Binding</span>
+                {device.tokenBoundAt ? (
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    🟢 Bound & Active
+                  </span>
+                ) : (
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    🟡 Unclaimed (Awaiting QR Setup)
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-slate-500">
+                Cryptographic per-device SHA-256 token authentication & dual IMEI anti-spoofing
+              </p>
+            </div>
+          </div>
+
+          <button
+            disabled={actionLoading}
+            onClick={handleResetToken}
+            className="inline-flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold transition-all min-h-[44px] cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
+            <span>Reset TOFU Token (Re-enroll)</span>
+          </button>
+        </div>
+
+        {/* Security Specs Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+            <div className="flex items-center space-x-1.5 text-slate-500 font-semibold">
+              <Cpu className="w-3.5 h-3.5 text-blue-600" />
+              <span>TOFU Secret Status</span>
+            </div>
+            <div className="text-slate-800 font-medium">
+              {device.tokenBoundAt ? (
+                <>
+                  <p className="font-bold text-emerald-700">SHA-256 Token Enforced</p>
+                  <p className="text-[11px] text-slate-500">
+                    Bound: {new Date(device.tokenBoundAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  </p>
+                </>
+              ) : (
+                <p className="text-amber-700 font-semibold">Pending Enrollment</p>
+              )}
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+            <span className="text-slate-500 font-semibold block">Hardware Identifiers</span>
+            <div className="font-mono text-slate-800 space-y-0.5 text-[11px]">
+              <p><span className="text-slate-400">IMEI 1:</span> {device.imei1}</p>
+              <p><span className="text-slate-400">IMEI 2:</span> {device.imei2 || 'Not detected'}</p>
+              {device.serialNumber && <p><span className="text-slate-400">Serial:</span> {device.serialNumber}</p>}
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+            <span className="text-slate-500 font-semibold block">SIM Card Protection</span>
+            <div className="text-slate-800 space-y-0.5 text-[11px]">
+              <p className="font-mono truncate"><span className="text-slate-400">ICCID:</span> {device.simIccid || 'Awaiting SIM info'}</p>
+              <p><span className="text-slate-400">Operator:</span> {device.simOperator || 'Not reported'}</p>
+              <p className="text-[10px] text-emerald-600 font-semibold">🛡️ Auto-locks on SIM swap</p>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+            <span className="text-slate-500 font-semibold block">MDM Client Integrity</span>
+            <div className="text-slate-800 space-y-0.5 text-[11px]">
+              <p><span className="text-slate-400">App:</span> {device.appVersion || 'v1.0.0-production'}</p>
+              <p><span className="text-slate-400">OS:</span> {device.androidVersion || 'Android 13+'}</p>
+              <p className="text-[10px] text-blue-600 font-semibold">⏱️ Deadman timer: {device.offlineTimerHours} hrs</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* EMI Ledger Table & Audit Logs */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Complete EMI Schedule */}
@@ -410,7 +593,7 @@ export default function DeviceDetailPage() {
 
           {/* 1. Mobile Cards for EMI installments (md:hidden) */}
           <div className="md:hidden space-y-2.5">
-            {device.emiSchedules?.map((emi: any) => {
+            {device.emiSchedules?.map((emi: EmiItem) => {
               const isPaid = emi.status === 'PAID'
               const isOverdue = emi.status === 'OVERDUE'
 
@@ -468,7 +651,7 @@ export default function DeviceDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {device.emiSchedules?.map((emi: any) => {
+                  {device.emiSchedules?.map((emi: EmiItem) => {
                     const isPaid = emi.status === 'PAID'
                     const isOverdue = emi.status === 'OVERDUE'
 
@@ -532,7 +715,7 @@ export default function DeviceDetailPage() {
             {device.activityLogs?.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-6 font-medium">No activity records yet.</p>
             ) : (
-              device.activityLogs?.map((log: any) => (
+              device.activityLogs?.map((log: ActivityLogItem) => (
                 <div key={log.id} className="py-3 first:pt-0 last:pb-0 space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-blue-700">{log.activityType}</span>

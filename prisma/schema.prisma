@@ -1,6 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -8,16 +9,70 @@ generator client {
 }
 
 model Shop {
-  id          String   @id @default(cuid())
-  shopName    String   @default("Sarvam Management")
-  ownerName   String   @default("Admin")
-  phone       String   @default("9876543210")
-  email       String?  @default("admin@sarvam.com")
-  upiId       String   @default("sarvam@upi")
-  address     String?
-  devices     Device[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  shopName           String   @default("Sarvam Management")
+  ownerName          String   @default("Admin")
+  phone              String   @default("9876543210")
+  email              String?  @default("admin@sarvam.com")
+  upiId              String   @default("sarvam@upi")
+  address            String?
+  isActive           Boolean  @default(true)
+  maxDevices         Int      @default(500)
+  devices            Device[]
+
+  // Per-shop enrollment key (hash only) used to gate device claims.
+  // Null until the owner generates one from the dashboard.
+  enrollmentKeyHash  String?
+  // Google account userId used for Factory Reset Protection on this shop's devices.
+  frpGoogleAccountId String?
+
+  // Role-based accounts belonging to this shop (OWNER / STAFF).
+  users              User[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([phone])
+  @@index([isActive])
+}
+
+// Role-based per-shop account.
+model User {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  username     String   @unique
+  passwordHash String   // PBKDF2-HMAC-SHA256, see src/lib/password.ts
+  role         String   // "OWNER" | "STAFF"
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([shopId, role])
+  @@index([isActive])
+}
+
+// Append-only audit trail for sensitive actions.
+// Enforced at DB level by deny_auditlog_mutation() trigger (no UPDATE/DELETE).
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String   // User.id, or synthetic id like "system:cron"
+  actorName  String   // denormalized username at the time of the action
+  actorRole  String   // OWNER | STAFF | SYSTEM
+  shopId     String
+  action     String   // LOCK | UNLOCK | CASH_PAID | PAYMENT_REVERSED | GRACE_GRANTED | DEVICE_CREATED | DEVICE_DELETED | USER_CREATED | USER_DELETED | SHOP_CREATED | SHOP_DELETED | EMI_EDITED | CLAIM_REJECTED | ENROLLMENT_KEY_ROTATED
+  targetType String   // DEVICE | USER | SHOP | PAYMENT
+  targetId   String
+  reason     String?  // required for PAYMENT_REVERSED and OWNER grace beyond cap
+  metadata   String?  // JSON string: amounts, installmentNo, old/new values
+  createdAt  DateTime @default(now())
+
+  @@index([shopId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([createdAt])
 }
 
 model Device {
@@ -30,8 +85,15 @@ model Device {
   customerAadhaar   String?
   deviceModel       String
   brand             String              @default("Android")
+  status            String              @default("ACTIVE") // ACTIVE | COMPLETED | DEFAULTED | ARCHIVED
   fcmToken          String?
-  
+
+  // Per-device secret (hash only). The raw token lives only on the phone.
+  // Null until the device completes its first claim (trust-on-first-use).
+  deviceTokenHash   String?             // sha256hex of the per-device secret
+  tokenBoundAt      DateTime?           // when the token was first bound (TOFU)
+  lastAuthAt        DateTime?           // last VERIFIED authenticated success
+
   // Security & Lock State
   isLocked          Boolean             @default(false)
   lockMessage       String?
@@ -48,6 +110,11 @@ model Device {
   simIccid          String?
   simOperator       String?
   
+  // App & OS Metadata
+  appVersion        String?
+  androidVersion    String?
+  notes             String?
+
   // Deadman & EMI Rules
   offlineTimerHours Int                 @default(48)
   totalLoanAmount   Float               @default(15000)
@@ -58,12 +125,20 @@ model Device {
   
   // Relationships
   shopId            String?
-  shop              Shop?               @relation(fields: [shopId], references: [id])
+  shop              Shop?               @relation(fields: [shopId], references: [id], onDelete: SetNull)
   emiSchedules      EmiSchedule[]
   activityLogs      DeviceActivityLog[]
   
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+
+  @@index([shopId])
+  @@index([shopId, isLocked])
+  @@index([isLocked])
+  @@index([status])
+  @@index([customerPhone])
+  @@index([isOnline, lastPingAt])
+  @@index([lastAuthAt])
 }
 
 model EmiSchedule {
@@ -77,18 +152,31 @@ model EmiSchedule {
   paymentMode   String?   // CASH, UPI
   paidAt        DateTime?
   receiptNumber String?
+  transactionId String?   // Online payment gateway tx id / UPI UTR / RRN
+  collectedBy   String?   // User id or staff username who collected the payment
   remarks       String?
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@unique([deviceId, installmentNo])
+  @@index([deviceId])
+  @@index([status, dueDate])
+  @@index([paidAt])
+  @@index([dueDate])
 }
 
 model DeviceActivityLog {
   id           String   @id @default(cuid())
   deviceId     String
   device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  activityType String   // LOCK, UNLOCK, SIREN, STOP_SIREN, WARNING, SIM_REMOVED, SIM_SWAPPED, CASH_PAID, LOCATION_UPDATE
+  activityType String   // LOCK, UNLOCK, SIREN, STOP_SIREN, WARNING, SIM_REMOVED, SIM_SWAPPED, CASH_PAID, LOCATION_UPDATE, AUTO_LOCK, DEVICE_CLAIMED
   details      String?
   ipAddress    String?
+  metadata     String?  // Rich JSON telemetry (battery, network, signal, etc.)
   timestamp    DateTime @default(now())
+
+  @@index([deviceId, timestamp])
+  @@index([activityType, timestamp])
+  @@index([timestamp])
 }

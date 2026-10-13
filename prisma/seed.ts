@@ -3,6 +3,16 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
+  // This script DELETES ALL DATA (devices, EMIs, shops, logs) before seeding demo rows.
+  // Refuse to run unless explicitly confirmed, so it can never wipe the live database by accident.
+  if (process.env.SEED_CONFIRM !== 'wipe-all-data') {
+    console.error(
+      '❌ Refusing to seed: this deletes ALL devices, EMIs, shops and logs.\n' +
+        '   Use a separate dev database, then run with SEED_CONFIRM=wipe-all-data'
+    )
+    process.exit(1)
+  }
+
   console.log('🌱 Starting Sarvam Management database seed...')
 
   // Clean existing demo data

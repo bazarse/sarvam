@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import Link from 'next/link'
-import { MapPin, Smartphone, Battery, Phone, ExternalLink, Loader2, Database } from 'lucide-react'
+import { Battery, Loader2 } from 'lucide-react'
+import type { MapDevice } from '@/components/DeviceMap'
 
 // Dynamically import map to avoid window undefined during SSR
 const DeviceMap = dynamic(() => import('@/components/DeviceMap'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-[500px] rounded-2xl bg-slate-100 flex flex-col items-center justify-center text-slate-500 space-y-3">
+    <div className="w-full h-full min-h-[350px] sm:min-h-[500px] rounded-2xl bg-slate-100 flex flex-col items-center justify-center text-slate-500 space-y-3">
       <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
       <p className="text-sm font-medium">Loading Live OpenStreetMap...</p>
     </div>
@@ -17,9 +17,9 @@ const DeviceMap = dynamic(() => import('@/components/DeviceMap'), {
 })
 
 export default function LiveMapPage() {
-  const [devices, setDevices] = useState<any[]>([])
+  const [devices, setDevices] = useState<MapDevice[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedDevice, setSelectedDevice] = useState<any | null>(null)
+  const [selectedDevice, setSelectedDevice] = useState<MapDevice | null>(null)
 
   useEffect(() => {
     fetch('/api/dashboard/devices')
@@ -27,7 +27,7 @@ export default function LiveMapPage() {
       .then((data) => {
         if (data.success) {
           setDevices(data.devices)
-          const firstWithLocation = data.devices.find((d: any) => d.lastKnownLat && d.lastKnownLng)
+          const firstWithLocation = data.devices.find((d: MapDevice) => d.lastKnownLat && d.lastKnownLng)
           if (firstWithLocation) setSelectedDevice(firstWithLocation)
         }
       })
@@ -35,7 +35,7 @@ export default function LiveMapPage() {
   }, [])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
         <div className="flex items-center space-x-2">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -45,19 +45,19 @@ export default function LiveMapPage() {
             Live GPS
           </span>
         </div>
-        <p className="text-sm text-slate-600 mt-0.5">
-          Real-time GPS coordinates of customer phones across Delhi NCR & India stored in Supabase
+        <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+          Real-time GPS telemetry of customer phones synced from Android MDM client.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Col: Device List */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3 max-h-[600px] overflow-y-auto">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3 max-h-[320px] lg:max-h-[600px] overflow-y-auto">
           <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Customer Devices ({devices.length})
             </span>
-            <span className="text-xs text-blue-600 font-bold">Click to Locate</span>
+            <span className="text-xs text-blue-600 font-bold">Tap to Locate</span>
           </div>
 
           {loading ? (
@@ -74,7 +74,7 @@ export default function LiveMapPage() {
                 <div
                   key={d.id}
                   onClick={() => hasLocation && setSelectedDevice(d)}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer min-h-[44px] ${
                     isSelected
                       ? 'bg-blue-50 border-blue-300 shadow-xs'
                       : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
@@ -98,7 +98,7 @@ export default function LiveMapPage() {
                   <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
                     <span className="flex items-center gap-1 font-mono">
                       <Battery className="w-3 h-3 text-emerald-600" />
-                      <span>{d.batteryLevel ?? 80}%</span>
+                      <span>{d.batteryLevel != null ? `${d.batteryLevel}%` : '--'}</span>
                     </span>
                     <span className={`font-medium ${hasLocation ? 'text-blue-700' : 'text-slate-400'}`}>
                       {hasLocation ? '📍 GPS Synced' : 'No GPS Ping'}
@@ -111,7 +111,7 @@ export default function LiveMapPage() {
         </div>
 
         {/* Right 2 Cols: Interactive Map */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden min-h-[500px]">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden min-h-[350px] sm:min-h-[500px]">
           <DeviceMap
             devices={devices}
             selectedDevice={selectedDevice}

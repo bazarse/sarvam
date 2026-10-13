@@ -7,7 +7,13 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:triggers": "tsx scripts/apply_triggers.ts",
+    "db:verify": "tsx scripts/verify_db.ts",
+    "db:backup": "tsx scripts/backup_db.ts",
+    "db:seed": "prisma db seed",
+    "test:api": "tsx scripts/test_apis.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -17,7 +23,7 @@
     "date-fns": "^4.4.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.47.0",
-    "next": "16.3.5",
+    "next": "16.3.8",
     "prisma": "6.4.1",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
@@ -31,7 +37,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.5",
+    "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"

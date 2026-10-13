@@ -1,15 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import QRCode from 'qrcode'
-import { QrCode, Wifi, Smartphone, ShieldCheck, Download, Copy, Check, Store, KeyRound, AlertTriangle } from 'lucide-react'
+import { Wifi, Smartphone, ShieldCheck, Download, Copy, Check, Store, AlertTriangle } from 'lucide-react'
 
 export default function EnrollPage() {
   const [selectedBranch, setSelectedBranch] = useState('DEVI_MAIN')
   const [wifiSsid, setWifiSsid] = useState('Devi_Mobile_WiFi')
   const [wifiPassword, setWifiPassword] = useState('devi12345')
   const [apkDownloadUrl, setApkDownloadUrl] = useState('https://sarvam-tau.vercel.app/sarvam.apk')
-  const [checksum, setChecksum] = useState('bZwOdyqWztJJmAyW0bP9CvnMz8cShGEiRVq_J4Rc5R8')
+  const [checksum, setChecksum] = useState('AYAhfJrPLHzCA2gD0z9soiubmkBo3_SkRzdbsawE9v8')
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -20,7 +21,7 @@ export default function EnrollPage() {
 
   // Generate Android Enterprise Zero-Touch QR Code Payload
   useEffect(() => {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       'android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME':
         'com.androidmanager/com.androidmanager.receiver.DeviceAdminReceiver',
       'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION':
@@ -84,7 +85,7 @@ export default function EnrollPage() {
           Android 6-Tap QR Provisioning
         </h1>
         <p className="text-sm text-slate-600 mt-1">
-          नए या फैक्टरी रिसेट किए गए फोन की "Welcome" स्क्रीन पर 6 बार टैप करके यह QR स्कैन करें — Sarvam Device Owner अपने-आप एक्टिवेट हो जाएगा!
+          नए या फैक्टरी रिसेट किए गए फोन की &quot;Welcome&quot; स्क्रीन पर 6 बार टैप करके यह QR स्कैन करें — Sarvam Device Owner अपने-आप एक्टिवेट हो जाएगा!
         </p>
       </div>
 
@@ -93,9 +94,12 @@ export default function EnrollPage() {
         <div className="lg:col-span-5 p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col items-center text-center space-y-4">
           <div className="p-3 rounded-2xl bg-white border-2 border-slate-200 shadow-md">
             {qrDataUrl ? (
-              <img
+              <Image
                 src={qrDataUrl}
                 alt="Sarvam Provisioning QR Code"
+                width={288}
+                height={288}
+                unoptimized
                 className="w-64 h-64 sm:w-72 sm:h-72 object-contain"
               />
             ) : (
@@ -230,7 +234,7 @@ export default function EnrollPage() {
               </div>
               <div className="flex items-start space-x-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[11px]">2</span>
-                <div><b>6-टैप करें:</b> फोन स्टार्ट होते ही पहली <b>"Welcome" / "Hi there"</b> स्क्रीन पर किसी भी खाली जगह (सफेद बैकग्राउंड) पर लगातार <b>6 बार टैप</b> करें।</div>
+                <div><b>6-टैप करें:</b> फोन स्टार्ट होते ही पहली <b>&quot;Welcome&quot; / &quot;Hi there&quot;</b> स्क्रीन पर किसी भी खाली जगह (सफेद बैकग्राउंड) पर लगातार <b>6 बार टैप</b> करें।</div>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[11px]">3</span>

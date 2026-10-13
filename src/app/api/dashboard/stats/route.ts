@@ -1,43 +1,54 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getActingUser } from '@/lib/authz'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const totalDevices = await prisma.device.count()
-    const lockedDevices = await prisma.device.count({ where: { isLocked: true } })
-    const activeDevices = await prisma.device.count({ where: { isLocked: false } })
+    const user = await getActingUser(req)
+    const shopFilter = user?.shopId ? { shopId: user.shopId } : undefined
+    const emiShopFilter = user?.shopId ? { device: { shopId: user.shopId } } : undefined
 
-    // Consider offline if lastPingAt > 2 hours ago
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
-    const offlineDevices = await prisma.device.count({
-      where: { lastPingAt: { lt: twoHoursAgo } },
-    })
-
-    // EMI collections
-    const paidEmis = await prisma.emiSchedule.aggregate({
-      _sum: { amount: true },
-      where: { status: 'PAID' },
-    })
-
-    const pendingEmis = await prisma.emiSchedule.aggregate({
-      _sum: { amount: true },
-      where: { status: { in: ['PENDING', 'OVERDUE'] } },
-    })
-
-    const overdueCount = await prisma.emiSchedule.count({
-      where: { status: 'OVERDUE' },
-    })
-
-    // Recent security alerts (SIM swaps, Lock actions)
-    const recentAlerts = await prisma.deviceActivityLog.findMany({
-      take: 5,
-      orderBy: { timestamp: 'desc' },
-      include: {
-        device: {
-          select: { customerName: true, deviceModel: true, imei1: true },
+    const [
+      totalDevices,
+      lockedDevices,
+      activeDevices,
+      offlineDevices,
+      paidEmis,
+      pendingEmis,
+      overdueCount,
+      recentAlerts,
+    ] = await Promise.all([
+      prisma.device.count({ where: shopFilter }),
+      prisma.device.count({ where: { ...shopFilter, isLocked: true } }),
+      prisma.device.count({ where: { ...shopFilter, isLocked: false } }),
+      prisma.device.count({
+        where: {
+          ...shopFilter,
+          lastPingAt: { lt: new Date(Date.now() - 2 * 60 * 60 * 1000) },
         },
-      },
-    })
+      }),
+      prisma.emiSchedule.aggregate({
+        _sum: { amount: true },
+        where: { ...emiShopFilter, status: 'PAID' },
+      }),
+      prisma.emiSchedule.aggregate({
+        _sum: { amount: true },
+        where: { ...emiShopFilter, status: { in: ['PENDING', 'OVERDUE'] } },
+      }),
+      prisma.emiSchedule.count({
+        where: { ...emiShopFilter, status: 'OVERDUE' },
+      }),
+      prisma.deviceActivityLog.findMany({
+        where: emiShopFilter,
+        take: 5,
+        orderBy: { timestamp: 'desc' },
+        include: {
+          device: {
+            select: { customerName: true, deviceModel: true, imei1: true },
+          },
+        },
+      }),
+    ])
 
     return NextResponse.json({
       success: true,

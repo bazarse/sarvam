@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { toLatLng } from '@/lib/validate'
+import { authenticateDevice } from '@/lib/device-auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { imei1, latitude, longitude } = body
+    const body = await req.json().catch(() => null)
+    const imei1 = body?.imei1
+    const loc = toLatLng(body?.latitude, body?.longitude)
 
-    if (!imei1 || latitude === undefined || longitude === undefined) {
-      return NextResponse.json({ success: false, message: 'IMEI, latitude, and longitude required' }, { status: 400 })
+    const auth = await authenticateDevice(req, imei1)
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, message: auth.reason }, { status: auth.status })
     }
 
-    await prisma.device.updateMany({
-      where: { imei1 },
+    if (!loc) {
+      return NextResponse.json({ success: false, message: 'latitude and longitude required' }, { status: 400 })
+    }
+
+    await prisma.device.update({
+      where: { id: auth.device.id },
       data: {
-        lastKnownLat: latitude,
-        lastKnownLng: longitude,
+        lastKnownLat: loc.lat,
+        lastKnownLng: loc.lng,
         isOnline: true,
         lastPingAt: new Date(),
       },

@@ -3,11 +3,22 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { escapeHtml } from '@/lib/validate'
+
+export interface MapDevice {
+  id: string
+  customerName: string
+  deviceModel: string
+  isLocked: boolean
+  batteryLevel?: number | null
+  lastKnownLat: number | null
+  lastKnownLng: number | null
+}
 
 interface DeviceMapProps {
-  devices: any[]
-  selectedDevice: any | null
-  onSelectDevice: (d: any) => void
+  devices: MapDevice[]
+  selectedDevice: MapDevice | null
+  onSelectDevice: (d: MapDevice) => void
 }
 
 export default function DeviceMap({ devices, selectedDevice, onSelectDevice }: DeviceMapProps) {
@@ -19,7 +30,7 @@ export default function DeviceMap({ devices, selectedDevice, onSelectDevice }: D
     if (!mapRef.current) return
 
     // Fix default marker icons in Leaflet for Next.js bundler
-    delete (L.Icon.Default.prototype as any)._getIconUrl
+    delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
       iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -41,7 +52,10 @@ export default function DeviceMap({ devices, selectedDevice, onSelectDevice }: D
     markersRef.current = []
 
     // Add markers for devices with coordinates
-    const validDevices = devices.filter((d) => d.lastKnownLat && d.lastKnownLng)
+    const validDevices = devices.filter(
+      (d): d is MapDevice & { lastKnownLat: number; lastKnownLng: number } =>
+        typeof d.lastKnownLat === 'number' && typeof d.lastKnownLng === 'number'
+    )
 
     validDevices.forEach((d) => {
       const markerColor = d.isLocked ? '#F43F5E' : '#10B981'
@@ -56,10 +70,10 @@ export default function DeviceMap({ devices, selectedDevice, onSelectDevice }: D
         .addTo(map)
         .bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; color: #1e293b;">
-            <b style="font-size: 14px;">${d.customerName}</b><br/>
-            <span>${d.deviceModel}</span><br/>
+            <b style="font-size: 14px;">${escapeHtml(d.customerName)}</b><br/>
+            <span>${escapeHtml(d.deviceModel)}</span><br/>
             <span>Status: <b>${d.isLocked ? '🔒 Locked' : '🟢 Active'}</b></span><br/>
-            <span>Battery: <b>${d.batteryLevel ?? 80}%</b></span>
+            <span>Battery: <b>${d.batteryLevel != null ? `${escapeHtml(d.batteryLevel)}%` : 'Unknown'}</b></span>
           </div>
         `)
 
@@ -71,7 +85,7 @@ export default function DeviceMap({ devices, selectedDevice, onSelectDevice }: D
       const group = L.featureGroup(markersRef.current)
       map.fitBounds(group.getBounds().pad(0.2))
     }
-  }, [devices])
+  }, [devices, selectedDevice, onSelectDevice])
 
   useEffect(() => {
     if (selectedDevice?.lastKnownLat && selectedDevice?.lastKnownLng && leafletMap.current) {
@@ -81,5 +95,5 @@ export default function DeviceMap({ devices, selectedDevice, onSelectDevice }: D
     }
   }, [selectedDevice])
 
-  return <div ref={mapRef} className="w-full h-full min-h-[400px] rounded-2xl z-0" />
+  return <div ref={mapRef} className="w-full h-full min-h-[350px] sm:min-h-[480px] rounded-2xl z-0" />
 }

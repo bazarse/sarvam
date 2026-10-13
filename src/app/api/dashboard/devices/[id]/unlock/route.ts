@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendDeviceCommand } from '@/lib/fcm'
+import { requireRoleWithName, assertDeviceInShop } from '@/lib/authz'
+import { writeAudit, actorFromSession } from '@/lib/audit'
 
+// OWNER-only. STAFF cannot unlock directly — a device only unlocks for STAFF as
+// the automatic side-effect of a cash payment that clears the overdue amount
+// (handled inside mark-cash-paid).
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -8,26 +14,53 @@ export async function POST(
   try {
     const { id } = await params
 
-    const device = await prisma.device.update({
-      where: { id },
-      data: {
-        isLocked: false,
-        lockMessage: null,
-        isSirenActive: false,
-      },
+    const authz = await requireRoleWithName(req, 'UNLOCK')
+    if (!authz.ok) {
+      return NextResponse.json({ success: false, message: authz.message }, { status: authz.status })
+    }
+    if (!(await assertDeviceInShop(id, authz.user))) {
+      return NextResponse.json({ success: false, message: 'Device not found' }, { status: 404 })
+    }
+
+    const existing = await prisma.device.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ success: false, message: 'Device not found' }, { status: 404 })
+    }
+
+    const device = await prisma.$transaction(async (tx) => {
+      const d = await tx.device.update({
+        where: { id },
+        data: { isLocked: false, lockMessage: null, isSirenActive: false },
+      })
+      await writeAudit(tx, {
+        actor: actorFromSession(authz.user, authz.username),
+        shopId: authz.user.shopId,
+        action: 'UNLOCK',
+        targetType: 'DEVICE',
+        targetId: id,
+      })
+      return d
     })
+
+    // The phone also polls /api/customer/device/status while its lock screen is
+    // showing, so it will unlock itself even if this push is not delivered.
+    const push = await sendDeviceCommand(existing.fcmToken, 'UNLOCK_DEVICE')
+    if (existing.isSirenActive) await sendDeviceCommand(existing.fcmToken, 'STOP_SIREN')
 
     await prisma.deviceActivityLog.create({
       data: {
         deviceId: id,
         activityType: 'MANUAL_UNLOCK',
-        details: 'Shopkeeper manually unlocked device',
+        details: `${authz.username} (${authz.user.role}) unlocked device. Push: ${push.sent ? 'sent' : `NOT sent (${push.reason})`}`,
       },
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Device unlocked successfully',
+      message: push.sent
+        ? 'Device unlocked successfully'
+        : `Unlocked on server. Push not delivered (${push.reason}); the phone will unlock on its next status check.`,
+      pushSent: push.sent,
       device,
     })
   } catch (error) {
