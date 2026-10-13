@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/emi-autolock",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }

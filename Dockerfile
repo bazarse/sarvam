@@ -18,6 +18,7 @@ COPY . .
 # Generate Prisma Client and build standalone
 RUN npx prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV BUILD_STANDALONE=true
 RUN npm run build
 
 # Production runner image
