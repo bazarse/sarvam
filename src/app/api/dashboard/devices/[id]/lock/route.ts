@@ -64,9 +64,10 @@ export async function POST(
     })
 
     // Also send AMAPI lock command for AMAPI-enrolled devices (dual delivery)
-    let amapiResult = { ok: false, error: 'no amapi device' }
+    let amapiResult: { ok: boolean; error: string } = { ok: false, error: 'no amapi device' }
     if (existing.amapiDeviceName) {
-      amapiResult = await amapiApplyLockPolicy(existing.amapiDeviceName)
+      const r = await amapiApplyLockPolicy(existing.amapiDeviceName)
+      amapiResult = { ok: r.ok, error: r.error ?? 'unknown' }
     }
 
     await prisma.deviceActivityLog.create({
