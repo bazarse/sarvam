@@ -115,6 +115,10 @@ model Device {
   androidVersion    String?
   notes             String?
 
+  // Google AMAPI device identifier (set when device enrolls via AMAPI QR)
+  // Format: "enterprises/LC01o0c2nt/devices/XXXXXXXXXXXXXXXX"
+  amapiDeviceName   String?
+
   // Deadman & EMI Rules
   offlineTimerHours Int                 @default(48)
   totalLoanAmount   Float               @default(15000)

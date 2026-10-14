@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendDeviceCommand } from '@/lib/fcm'
+import { amapiApplyLockPolicy } from '@/lib/amapi'
 import { cleanString } from '@/lib/validate'
 import { requireRoleWithName, assertDeviceInShop } from '@/lib/authz'
 import { writeAudit, actorFromSession } from '@/lib/audit'
@@ -62,11 +63,17 @@ export async function POST(
       amount: existing.emiSchedules[0]?.amount ?? existing.emiAmount,
     })
 
+    // Also send AMAPI lock command for AMAPI-enrolled devices (dual delivery)
+    let amapiResult = { ok: false, error: 'no amapi device' }
+    if (existing.amapiDeviceName) {
+      amapiResult = await amapiApplyLockPolicy(existing.amapiDeviceName)
+    }
+
     await prisma.deviceActivityLog.create({
       data: {
         deviceId: id,
         activityType: 'MANUAL_LOCK',
-        details: `${authz.username} (${authz.user.role}) locked device: "${customMessage}". Push: ${push.sent ? 'sent' : `NOT sent (${push.reason})`}`,
+        details: `${authz.username} (${authz.user.role}) locked device: "${customMessage}". FCM: ${push.sent ? 'sent' : `NOT sent (${push.reason})`}. AMAPI: ${amapiResult.ok ? 'sent' : amapiResult.error}`,
       },
     })
 

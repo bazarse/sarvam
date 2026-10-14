@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendDeviceCommand } from '@/lib/fcm'
+import { amapiApplyUnlockPolicy } from '@/lib/amapi'
 import { requireRoleWithName, assertDeviceInShop } from '@/lib/authz'
 import { writeAudit, actorFromSession } from '@/lib/audit'
 
@@ -47,11 +48,16 @@ export async function POST(
     const push = await sendDeviceCommand(existing.fcmToken, 'UNLOCK_DEVICE')
     if (existing.isSirenActive) await sendDeviceCommand(existing.fcmToken, 'STOP_SIREN')
 
+    // Also restore normal policy via AMAPI for AMAPI-enrolled devices
+    if (existing.amapiDeviceName) {
+      await amapiApplyUnlockPolicy(existing.amapiDeviceName)
+    }
+
     await prisma.deviceActivityLog.create({
       data: {
         deviceId: id,
         activityType: 'MANUAL_UNLOCK',
-        details: `${authz.username} (${authz.user.role}) unlocked device. Push: ${push.sent ? 'sent' : `NOT sent (${push.reason})`}`,
+        details: `${authz.username} (${authz.user.role}) unlocked device. Push: ${push.sent ? 'sent' : `NOT sent (${push.reason})`}. AMAPI: ${existing.amapiDeviceName ? 'policy restored' : 'n/a'}`,
       },
     })
 
