@@ -29,9 +29,11 @@ export default function EnrollPage() {
       'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED': true,
       'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE': {
         serverUrl: 'https://sarvam-tau.vercel.app',
+        backend_url: 'https://sarvam-tau.vercel.app/',
         brandName: 'Devi Mobile & Accessories',
         shopId: selectedBranch,
         shopPhone: selectedBranch === 'DEVI_MAIN' ? '9876543210' : '9123456789',
+        enrollment_key: selectedBranch === 'DEVI_MAIN' ? 'devi_enroll_key_2026_main_branch' : 'devi_enroll_key_2026_station_br',
       },
     }
 
