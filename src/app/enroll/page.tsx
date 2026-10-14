@@ -5,18 +5,30 @@ import Image from 'next/image'
 import QRCode from 'qrcode'
 import { Smartphone, ShieldCheck, Store, CheckCircle2, AlertTriangle } from 'lucide-react'
 
-// AMAPI QR payload — Google certified, Play Protect bypass guaranteed
-const AMAPI_QR_PAYLOAD = JSON.stringify({
-  "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME":
-    "com.google.android.apps.work.clouddpc/.receivers.CloudDeviceAdminReceiver",
-  "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM":
-    "I5YvS0O5hXY46mb01BlRjq4oJJGs2kuUcHvVkAPEXlg",
-  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION":
-    "https://play.google.com/managed/downloadManagingApp?identifier=setup",
-  "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
-    "com.google.android.apps.work.clouddpc.EXTRA_ENROLLMENT_TOKEN": "NSBBWZQGVMPQFURUPQTZDPIB"
-  }
-})
+// Production Release APK Zero-Touch QR payload
+const RELEASE_CHECKSUM = 'xD9Lnf7sLjvhu3UK0iT4aBxLgFQEN3ojFwG5RdvkCA0'
+
+function getQrPayload(shopId: string) {
+  return JSON.stringify({
+    'android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME':
+      'com.androidmanager/com.androidmanager.receiver.DeviceAdminReceiver',
+    'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION':
+      'https://sarvam-tau.vercel.app/sarvam.apk',
+    'android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM':
+      RELEASE_CHECKSUM,
+    'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED': true,
+    'android.app.extra.PROVISIONING_MODE': 1,
+    'android.app.extra.PROVISIONING_SKIP_ENCRYPTION': true,
+    'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE': {
+      serverUrl: 'https://sarvam-tau.vercel.app',
+      backend_url: 'https://sarvam-tau.vercel.app/',
+      brandName: 'Devi Mobile & Accessories',
+      shopId: shopId,
+      shopPhone: shopId === 'DEVI_MAIN' ? '9876543210' : '9123456789',
+      enrollment_key: shopId === 'DEVI_MAIN' ? 'devi_enroll_key_2026_main_branch' : 'devi_enroll_key_2026_station_br',
+    },
+  })
+}
 
 export default function EnrollPage() {
   const [qrDataUrl, setQrDataUrl] = useState('')
@@ -28,7 +40,7 @@ export default function EnrollPage() {
   ]
 
   useEffect(() => {
-    QRCode.toDataURL(AMAPI_QR_PAYLOAD, {
+    QRCode.toDataURL(getQrPayload(selectedBranch), {
       width: 400,
       margin: 2,
       errorCorrectionLevel: 'M',
@@ -36,7 +48,7 @@ export default function EnrollPage() {
     })
       .then((url) => setQrDataUrl(url))
       .catch(console.error)
-  }, [])
+  }, [selectedBranch])
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
