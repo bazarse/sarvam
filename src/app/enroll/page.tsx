@@ -5,8 +5,9 @@ import Image from 'next/image'
 import QRCode from 'qrcode'
 import { Smartphone, ShieldCheck, Store, CheckCircle2, AlertTriangle } from 'lucide-react'
 
-// Production Release APK Zero-Touch QR payload
-const RELEASE_CHECKSUM = 'xD9Lnf7sLjvhu3UK0iT4aBxLgFQEN3ojFwG5RdvkCA0'
+// Headwind MDM Standard: Dual Package + Signature Checksums
+const APK_FILE_CHECKSUM = 'Z6-sukkM4w5mURjjvzVDona11bLlbybUHbmBW8OzIIo'
+const CERT_SIGNATURE_CHECKSUM = 'xD9Lnf7sLjvhu3UK0iT4aBxLgFQEN3ojFwG5RdvkCA0'
 
 function getQrPayload(shopId: string) {
   return JSON.stringify({
@@ -14,8 +15,10 @@ function getQrPayload(shopId: string) {
       'com.androidmanager/com.androidmanager.receiver.DeviceAdminReceiver',
     'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION':
       'https://sarvam-tau.vercel.app/sarvam.apk',
+    'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM':
+      APK_FILE_CHECKSUM,
     'android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM':
-      RELEASE_CHECKSUM,
+      CERT_SIGNATURE_CHECKSUM,
     'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED': true,
     'android.app.extra.PROVISIONING_MODE': 1,
     'android.app.extra.PROVISIONING_SKIP_ENCRYPTION': true,
