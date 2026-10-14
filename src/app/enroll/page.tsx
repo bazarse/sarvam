@@ -7,10 +7,10 @@ import { Wifi, Smartphone, ShieldCheck, Download, Copy, Check, Store, AlertTrian
 
 export default function EnrollPage() {
   const [selectedBranch, setSelectedBranch] = useState('DEVI_MAIN')
-  const [wifiSsid, setWifiSsid] = useState('Devi_Mobile_WiFi')
-  const [wifiPassword, setWifiPassword] = useState('devi12345')
+  const [wifiSsid, setWifiSsid] = useState('')
+  const [wifiPassword, setWifiPassword] = useState('')
   const [apkDownloadUrl, setApkDownloadUrl] = useState('https://sarvam-tau.vercel.app/sarvam.apk')
-  const [checksum, setChecksum] = useState('AYAhfJrPLHzCA2gD0z9soiubmkBo3_SkRzdbsawE9v8')
+  const [checksum, setChecksum] = useState('bZwOdyqWztJJmAyW0bP9CvnMz8cShGEiRVq_J4Rc5R8')
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -175,21 +175,23 @@ export default function EnrollPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-600 font-semibold block mb-1">Wi-Fi Name (SSID):</label>
+                  <label className="text-xs text-slate-600 font-semibold block mb-1">Wi-Fi Name (SSID - Optional):</label>
                   <input
                     type="text"
                     value={wifiSsid}
                     onChange={(e) => setWifiSsid(e.target.value)}
+                    placeholder="Optional (phone Wi-Fi se juda hai toh khali chhod dein)"
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white min-h-[44px]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-600 font-semibold block mb-1">Wi-Fi Password:</label>
+                  <label className="text-xs text-slate-600 font-semibold block mb-1">Wi-Fi Password (Optional):</label>
                   <input
                     type="text"
                     value={wifiPassword}
                     onChange={(e) => setWifiPassword(e.target.value)}
+                    placeholder="Optional (Password)"
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white min-h-[44px]"
                   />
                 </div>
